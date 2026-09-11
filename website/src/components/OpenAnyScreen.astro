@@ -1,0 +1,651 @@
+---
+// OpenAnyScreen.astro
+---
+
+<section class="any-screen-section" id="features">
+  <div class="container any-screen-container">
+    <div class="section-header">
+      <span class="section-tag">Universal Access</span>
+      <h2 class="section-title">Open on any screen in your home</h2>
+      <p class="section-desc">
+        Folder Share connects your TV, desktop computers, phones, and web browsers with zero setup over your local Wi-Fi.
+      </p>
+    </div>
+
+    <!-- Interactive 4-Device Switcher Tab Bar -->
+    <div class="device-switcher-nav" role="tablist" aria-label="Select device screen to preview">
+      <!-- Device 1: Smart TV -->
+      <button 
+        type="button" 
+        class="device-tab-btn active" 
+        role="tab" 
+        aria-selected="true" 
+        aria-controls="panel-tv" 
+        id="tab-tv" 
+        data-target-panel="panel-tv"
+      >
+        <div class="tab-icon-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="20" height="15" x="2" y="7" rx="2"/>
+            <polyline points="17 2 12 7 7 2"/>
+          </svg>
+        </div>
+        <div class="tab-label-wrap">
+          <span class="tab-title">Smart TV</span>
+          <span class="tab-subtitle">Instant video playback</span>
+        </div>
+        <div class="tab-progress-track" aria-hidden="true"><div class="tab-progress-fill"></div></div>
+      </button>
+
+      <!-- Device 2: Desktop PC -->
+      <button 
+        type="button" 
+        class="device-tab-btn" 
+        role="tab" 
+        aria-selected="false" 
+        aria-controls="panel-desktop" 
+        id="tab-desktop" 
+        data-target-panel="panel-desktop"
+      >
+        <div class="tab-icon-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="20" height="14" x="2" y="3" rx="2"/>
+            <line x1="8" x2="16" y1="21" y2="21"/>
+            <line x1="12" x2="12" y1="17" y2="21"/>
+          </svg>
+        </div>
+        <div class="tab-label-wrap">
+          <span class="tab-title">Desktop / PC</span>
+          <span class="tab-subtitle">Windows & Linux</span>
+        </div>
+        <div class="tab-progress-track" aria-hidden="true"><div class="tab-progress-fill"></div></div>
+      </button>
+
+      <!-- Device 3: Mobile Phone -->
+      <button 
+        type="button" 
+        class="device-tab-btn" 
+        role="tab" 
+        aria-selected="false" 
+        aria-controls="panel-mobile" 
+        id="tab-mobile" 
+        data-target-panel="panel-mobile"
+      >
+        <div class="tab-icon-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+            <line x1="12" x2="12.01" y1="18" y2="18"/>
+          </svg>
+        </div>
+        <div class="tab-label-wrap">
+          <span class="tab-title">Mobile Phone</span>
+          <span class="tab-subtitle">Android app</span>
+        </div>
+        <div class="tab-progress-track" aria-hidden="true"><div class="tab-progress-fill"></div></div>
+      </button>
+
+      <!-- Device 4: Web Browser -->
+      <button 
+        type="button" 
+        class="device-tab-btn" 
+        role="tab" 
+        aria-selected="false" 
+        aria-controls="panel-browser" 
+        id="tab-browser" 
+        data-target-panel="panel-browser"
+      >
+        <div class="tab-icon-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+        </div>
+        <div class="tab-label-wrap">
+          <span class="tab-title">Web Browser</span>
+          <span class="tab-subtitle">Zero install needed</span>
+        </div>
+        <div class="tab-progress-track" aria-hidden="true"><div class="tab-progress-fill"></div></div>
+      </button>
+    </div>
+
+    <!-- Animated Device Showcase Container -->
+    <div class="device-stage-container" id="device-stage">
+      <!-- Panel 1: Smart TV -->
+      <div 
+        class="device-panel active" 
+        id="panel-tv" 
+        role="tabpanel" 
+        aria-labelledby="tab-tv"
+      >
+        <div class="panel-media-wrap">
+          <div class="tv-ambient-glow" aria-hidden="true"></div>
+          <div class="device-frame-tv showcase-tv-frame">
+            <div class="tv-status-bar">
+              <span class="tv-live-pill">
+                <span class="pulse-dot"></span>
+                Living Room TV • Direct Stream
+              </span>
+              <span class="tv-scrub-pill">Instant Scrubbing</span>
+            </div>
+            <div class="device-tv-screen">
+              <img 
+                src={`${import.meta.env.BASE_URL}screenshots/media-playing-tv.gif`} 
+                alt="Seamless video media streaming directly on Smart TV"
+                loading="lazy"
+                width="600"
+                height="337"
+              />
+            </div>
+            <div class="device-tv-chin">
+              <span class="device-tv-led"></span>
+              <span class="device-tv-brand">SMART TV</span>
+            </div>
+          </div>
+        </div>
+        <div class="panel-caption-bar">
+          <div class="panel-caption-pill">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            <span><strong>Smart TV:</strong> Play movies and home videos directly on the big screen without transfer waiting or copying.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: Desktop PC -->
+      <div 
+        class="device-panel" 
+        id="panel-desktop" 
+        role="tabpanel" 
+        aria-labelledby="tab-desktop"
+      >
+        <div class="panel-media-wrap">
+          <div class="device-frame-desktop showcase-desktop-frame">
+            <div class="desktop-window-titlebar">
+              <div class="window-dots" aria-hidden="true">
+                <span class="window-dot window-dot-red"></span>
+                <span class="window-dot window-dot-yellow"></span>
+                <span class="window-dot window-dot-green"></span>
+              </div>
+              <span class="window-title">Folder Share — Devices</span>
+            </div>
+            <div class="desktop-window-screen">
+              <img 
+                src={`${import.meta.env.BASE_URL}screenshots/pc-devices-screen.png`} 
+                alt="Folder Share desktop application for Windows and Linux showing auto-discovered network devices"
+                loading="lazy"
+                width="854"
+                height="503"
+              />
+            </div>
+          </div>
+        </div>
+        <div class="panel-caption-bar">
+          <div class="panel-caption-pill">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="14" x="2" y="3" rx="2"/>
+              <line x1="8" x2="16" y1="21" y2="21"/>
+              <line x1="12" x2="12" y1="17" y2="21"/>
+            </svg>
+            <span><strong>Desktop PC:</strong> Native Windows & Linux app. Automatically discovers all folders on your network.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: Mobile Phone -->
+      <div 
+        class="device-panel" 
+        id="panel-mobile" 
+        role="tabpanel" 
+        aria-labelledby="tab-mobile"
+      >
+        <div class="panel-media-wrap panel-media-mobile">
+          <div class="device-frame-phone showcase-phone-frame">
+            <div class="device-phone-notch" aria-hidden="true"></div>
+            <div class="device-phone-screen">
+              <img 
+                src={`${import.meta.env.BASE_URL}screenshots/android-devices-screen.png`} 
+                alt="Folder Share Android app showing discovered local network devices"
+                loading="lazy"
+                width="1080"
+                height="2400"
+              />
+            </div>
+          </div>
+        </div>
+        <div class="panel-caption-bar">
+          <div class="panel-caption-pill">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+              <line x1="12" x2="12.01" y1="18" y2="18"/>
+            </svg>
+            <span><strong>Mobile Phone:</strong> Share or browse folders on any Android phone or tablet at full Wi-Fi speeds.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 4: Web Browser -->
+      <div 
+        class="device-panel" 
+        id="panel-browser" 
+        role="tabpanel" 
+        aria-labelledby="tab-browser"
+      >
+        <div class="panel-media-wrap">
+          <!-- Uses screenshot's own native window controls and address bar without adding duplicate dots -->
+          <div class="browser-showcase-frame showcase-browser-frame">
+            <img 
+              src={`${import.meta.env.BASE_URL}screenshots/browser-access-screen.png`} 
+              alt="Accessing Folder Share in a web browser with zero application installation"
+              loading="lazy"
+              width="1225"
+              height="742"
+            />
+          </div>
+        </div>
+        <div class="panel-caption-bar">
+          <div class="panel-caption-pill">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="2" y1="12" x2="22" y2="12"/>
+            </svg>
+            <span><strong>Web Browser:</strong> Open shared folders in Chrome, Safari, Edge, or Firefox. No app installation needed.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .any-screen-section {
+    padding: 85px 0;
+    background: var(--md-sys-color-background);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .any-screen-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 980px;
+  }
+
+  /* 4-Device Interactive Navigation Bar */
+  .device-switcher-nav {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 32px;
+  }
+
+  .device-tab-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--md-sys-color-surface-container-low);
+    border: 1.5px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    text-align: left;
+    transition: all var(--transition-fast);
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    overflow: hidden;
+  }
+
+  .device-tab-btn:hover {
+    background: var(--md-sys-color-surface-container);
+    border-color: var(--md-sys-color-primary);
+    transform: translateY(-2px);
+  }
+
+  .device-tab-btn.active {
+    background: var(--md-sys-color-surface-container-lowest);
+    border-color: var(--md-sys-color-primary);
+    box-shadow: 0 4px 18px rgba(0, 83, 219, 0.15);
+  }
+
+  .tab-icon-wrap {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    background: var(--md-sys-color-surface-container);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    transition: all var(--transition-fast);
+  }
+
+  .device-tab-btn.active .tab-icon-wrap {
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-primary);
+  }
+
+  .tab-label-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .tab-title {
+    font-size: 0.94rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tab-subtitle {
+    font-size: 0.74rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Active Auto-rotation Progress Bar */
+  .tab-progress-track {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: transparent;
+  }
+
+  .tab-progress-fill {
+    width: 0%;
+    height: 100%;
+    background: var(--md-sys-color-primary);
+    transition: width 100ms linear;
+  }
+
+  .device-tab-btn.active .tab-progress-track {
+    background: rgba(0, 83, 219, 0.1);
+  }
+
+  /* Stage Container */
+  .device-stage-container {
+    width: 100%;
+    position: relative;
+    min-height: 480px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .device-panel {
+    display: none;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 300ms ease, transform 300ms ease;
+  }
+
+  .device-panel.active {
+    display: flex;
+    opacity: 1;
+    animation: stageFadeIn 350ms ease forwards;
+  }
+
+  @keyframes stageFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.99);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .panel-media-wrap {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+
+  .panel-media-mobile {
+    padding-block: 10px;
+  }
+
+  /* Frame Size Variations */
+  .showcase-tv-frame {
+    width: 100%;
+    max-width: 780px;
+    z-index: 1;
+  }
+
+  .tv-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 4px 6px;
+    font-size: 0.76rem;
+    font-weight: 700;
+  }
+
+  .tv-live-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #4ade80;
+    font-family: var(--font-mono);
+  }
+
+  .tv-scrub-pill {
+    color: #94a3b8;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+  }
+
+  .pulse-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: var(--radius-full);
+    background: #22c55e;
+    box-shadow: 0 0 8px #22c55e;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(0.9); opacity: 0.8; }
+    50% { transform: scale(1.3); opacity: 1; }
+    100% { transform: scale(0.9); opacity: 0.8; }
+  }
+
+  .showcase-desktop-frame {
+    width: 100%;
+    max-width: 780px;
+  }
+
+  .showcase-phone-frame {
+    width: 220px;
+    aspect-ratio: 9 / 19.5;
+  }
+
+  .showcase-browser-frame {
+    width: 100%;
+    max-width: 820px;
+  }
+
+  /* Caption Bar */
+  .panel-caption-bar {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-top: 24px;
+  }
+
+  .panel-caption-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: var(--md-sys-color-surface-container-lowest);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-full);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-sm);
+    max-width: 750px;
+    text-align: center;
+  }
+
+  .panel-caption-pill svg {
+    color: var(--md-sys-color-primary);
+    flex-shrink: 0;
+  }
+
+  .panel-caption-pill strong {
+    color: var(--text-primary);
+  }
+
+  /* Responsive Media Queries */
+  @media (max-width: 880px) {
+    .any-screen-section {
+      padding: 60px 0;
+    }
+    .device-switcher-nav {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .device-stage-container {
+      min-height: 400px;
+    }
+    .showcase-phone-frame {
+      width: 190px;
+    }
+    .panel-caption-pill {
+      font-size: 0.82rem;
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+    }
+  }
+
+  @media (max-width: 520px) {
+    .device-switcher-nav {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .device-tab-btn {
+      padding: 10px 14px;
+    }
+    .tab-icon-wrap {
+      width: 32px;
+      height: 32px;
+    }
+    .tab-title {
+      font-size: 0.88rem;
+    }
+    .tab-subtitle {
+      font-size: 0.72rem;
+    }
+    .device-stage-container {
+      min-height: 320px;
+    }
+    .showcase-phone-frame {
+      width: 170px;
+    }
+  }
+</style>
+
+<script>
+  // Interactive & Animated Multi-Device Showcase Controller
+  function initScreenDeviceShowcase() {
+    const tabs = Array.from(document.querySelectorAll('.device-tab-btn'));
+    const panels = Array.from(document.querySelectorAll('.device-panel'));
+    const stage = document.getElementById('device-stage');
+    const nav = document.querySelector('.device-switcher-nav');
+
+    if (!tabs.length || !panels.length) return;
+
+    let currentIndex = 0;
+    let isPaused = false;
+    let progress = 0;
+    const duration = 4500; // 4.5 seconds per device
+    const intervalTime = 50;
+    let timerId = null;
+
+    function activateDevice(index: number) {
+      currentIndex = index;
+      progress = 0;
+
+      tabs.forEach((tab, i) => {
+        const isActive = i === index;
+        tab.classList.toggle('active', isActive);
+        tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        
+        const fill = tab.querySelector<HTMLElement>('.tab-progress-fill');
+        if (fill) {
+          fill.style.width = isActive ? '0%' : '0%';
+        }
+      });
+
+      panels.forEach((panel, i) => {
+        panel.classList.toggle('active', i === index);
+      });
+    }
+
+    function step() {
+      if (!isPaused) {
+        progress += (intervalTime / duration) * 100;
+        const currentTab = tabs[currentIndex];
+        if (currentTab) {
+          const fill = currentTab.querySelector<HTMLElement>('.tab-progress-fill');
+          if (fill) {
+            fill.style.width = `${Math.min(progress, 100)}%`;
+          }
+        }
+
+        if (progress >= 100) {
+          const nextIndex = (currentIndex + 1) % tabs.length;
+          activateDevice(nextIndex);
+        }
+      }
+    }
+
+    timerId = window.setInterval(step, intervalTime);
+
+    // Tab Clicks
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => {
+        activateDevice(index);
+      });
+    });
+
+    // Pause on hover
+    if (stage) {
+      stage.addEventListener('mouseenter', () => { isPaused = true; });
+      stage.addEventListener('mouseleave', () => { isPaused = false; });
+    }
+    if (nav) {
+      nav.addEventListener('mouseenter', () => { isPaused = true; });
+      nav.addEventListener('mouseleave', () => { isPaused = false; });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initScreenDeviceShowcase);
+  } else {
+    initScreenDeviceShowcase();
+  }
+</script>

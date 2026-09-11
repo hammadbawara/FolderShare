@@ -1,0 +1,215 @@
+---
+// WebDavConnect.astro
+---
+
+<section class="webdav-section" id="webdav">
+  <div class="container">
+    <div class="glass-card webdav-container">
+      <div class="webdav-info">
+        <span class="section-tag">Open Standards</span>
+        <h2 class="webdav-title">Universal WebDAV & HTTP Protocol</h2>
+        <p class="webdav-desc">
+          Folder Share is completely open. In addition to our native multiplatform apps, any WebDAV-compatible client or media player on your network can connect without installing extra software.
+        </p>
+
+        <div class="client-chips">
+          <span class="client-chip">VLC Player</span>
+          <span class="client-chip">Kodi</span>
+          <span class="client-chip">Nova Player</span>
+          <span class="client-chip">Windows Explorer</span>
+          <span class="client-chip">macOS Finder</span>
+          <span class="client-chip">Linux Dolphin</span>
+        </div>
+      </div>
+
+      <div class="webdav-interactive">
+        <div class="code-terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots">
+              <span></span><span></span><span></span>
+            </div>
+            <span class="terminal-title">Quick Stream / Connect URL</span>
+          </div>
+
+          <div class="terminal-content">
+            <div class="terminal-row">
+              <span class="term-comment"># Stream directly in VLC (Instant Seek HTTP 206)</span>
+              <div class="code-box">
+                <span class="code-text" id="vlc-code">http://192.168.1.50:8080/files/movie.mkv</span>
+                <button type="button" class="copy-btn" data-copy-target="vlc-code" aria-label="Copy VLC stream URL">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect width="12" height="12" x="8" y="8" rx="2"/>
+                    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                  </svg>
+                  <span class="copy-label">Copy</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="terminal-row">
+              <span class="term-comment"># Mount as Windows Network Drive / WebDAV Client</span>
+              <div class="code-box">
+                <span class="code-text" id="dav-code">http://192.168.1.50:8080/webdav/</span>
+                <button type="button" class="copy-btn" data-copy-target="dav-code" aria-label="Copy WebDAV endpoint URL">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect width="12" height="12" x="8" y="8" rx="2"/>
+                    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                  </svg>
+                  <span class="copy-label">Copy</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .webdav-section {
+    padding: 80px 0;
+  }
+
+  .webdav-container {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 48px;
+    align-items: center;
+    padding: 48px;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.4) 100%);
+  }
+
+  .webdav-title {
+    font-size: clamp(1.8rem, 3vw, 2.3rem);
+    margin-bottom: 16px;
+  }
+
+  .webdav-desc {
+    color: var(--text-secondary);
+    font-size: 0.96rem;
+    line-height: 1.7;
+    margin-bottom: 28px;
+  }
+
+  .client-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .client-chip {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #cbd5e1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+  }
+
+  .code-terminal {
+    background: #030712;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+  }
+
+  .terminal-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .terminal-dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .terminal-dots span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .terminal-title {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+
+  .terminal-content {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .term-comment {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    padding: 6px 10px;
+    font-size: 0.76rem;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .copy-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+  }
+
+  @media (max-width: 900px) {
+    .webdav-container {
+      grid-template-columns: 1fr;
+      padding: 32px 24px;
+      gap: 36px;
+    }
+  }
+</style>
+
+<script>
+  // Copy to clipboard handling
+  const copyButtons = document.querySelectorAll('.copy-btn');
+  copyButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.getAttribute('data-copy-target');
+      if (!targetId) return;
+      const targetEl = document.getElementById(targetId);
+      if (!targetEl) return;
+
+      const text = targetEl.textContent || '';
+      navigator.clipboard.writeText(text).then(() => {
+        const label = btn.querySelector('.copy-label');
+        if (label) {
+          const original = label.textContent;
+          label.textContent = 'Copied!';
+          btn.style.color = '#22c55e';
+          setTimeout(() => {
+            label.textContent = original;
+            btn.style.color = '';
+          }, 2000);
+        }
+      });
+    });
+  });
+</script>

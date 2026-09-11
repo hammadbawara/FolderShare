@@ -1,0 +1,248 @@
+---
+// HowItWorks.astro
+---
+
+<section class="how-section" id="how-it-works">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Quick Start</span>
+      <h2 class="section-title">How to use it</h2>
+      <p class="section-desc">
+        Share your folders across devices in three effortless steps.
+      </p>
+    </div>
+
+    <!-- 3 Steps: Horizontal on desktop, Vertical on mobile -->
+    <div class="steps-grid">
+      <!-- Step 1 -->
+      <div class="m3-card step-card">
+        <div class="step-header">
+          <span class="step-number">1</span>
+          <div class="step-header-text">
+            <h3 class="step-title">Select Folder</h3>
+            <span class="step-subtitle">No moving or copying files</span>
+          </div>
+        </div>
+        <div class="step-visual-preview">
+          <div class="device-frame-phone step-phone-mockup">
+            <div class="device-phone-notch" aria-hidden="true"></div>
+            <div class="device-phone-screen">
+              <img 
+                src={`${import.meta.env.BASE_URL}screenshots/mobile-add-folder.png`} 
+                alt="Select and add a local folder to share in Folder Share"
+                loading="lazy"
+                width="864"
+                height="1920"
+              />
+            </div>
+          </div>
+        </div>
+        <p class="step-desc">
+          Tap <strong>Add Folder</strong> to pick any directory on your phone or computer. The app shares it instantly without moving or compressing files.
+        </p>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="m3-card step-card">
+        <div class="step-header">
+          <span class="step-number">2</span>
+          <div class="step-header-text">
+            <h3 class="step-title">Start Sharing</h3>
+            <span class="step-subtitle">Instant local connection</span>
+          </div>
+        </div>
+        <div class="step-visual-preview">
+          <div class="device-frame-phone step-phone-mockup">
+            <div class="device-phone-notch" aria-hidden="true"></div>
+            <div class="device-phone-screen">
+              <img 
+                src={`${import.meta.env.BASE_URL}screenshots/share-screen-tv-on.png`} 
+                alt="Turn sharing on in Folder Share for TV or other devices"
+                loading="lazy"
+                width="1080"
+                height="2400"
+              />
+            </div>
+          </div>
+        </div>
+        <p class="step-desc">
+          Toggle <strong>Sharing On</strong>. Folder Share broadcasts a fast local network address ready for TVs, PCs, and phones.
+        </p>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="m3-card step-card">
+        <div class="step-header">
+          <span class="step-number">3</span>
+          <div class="step-header-text">
+            <h3 class="step-title">Open on Target Device</h3>
+            <span class="step-subtitle">Zero-config automatic discovery</span>
+          </div>
+        </div>
+        <div class="step-visual-preview">
+          <div class="device-frame-desktop step-desktop-mockup">
+            <div class="desktop-window-titlebar">
+              <div class="window-dots" aria-hidden="true">
+                <span class="window-dot window-dot-red"></span>
+                <span class="window-dot window-dot-yellow"></span>
+                <span class="window-dot window-dot-green"></span>
+              </div>
+              <span class="window-title">Devices</span>
+            </div>
+            <div class="desktop-window-screen">
+              <img 
+                src={`${import.meta.env.BASE_URL}screenshots/pc-devices-screen.png`} 
+                alt="Discovered Folder Share devices ready to open and stream files"
+                loading="lazy"
+                width="854"
+                height="503"
+              />
+            </div>
+          </div>
+        </div>
+        <p class="step-desc">
+          Open Folder Share or any web browser on your TV, computer, or other phone. Your devices find each other automatically.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .how-section {
+    padding: 85px 0;
+    background: var(--md-sys-color-background);
+  }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    width: 100%;
+  }
+
+  .step-card {
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    background: var(--md-sys-color-surface-container-lowest);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+  }
+
+  .step-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .step-number {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-full);
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .step-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .step-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.25;
+  }
+
+  .step-subtitle {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .step-visual-preview {
+    width: 100%;
+    height: 250px;
+    background: radial-gradient(circle at 50% 30%, rgba(219, 225, 255, 0.45) 0%, var(--md-sys-color-surface-container-low) 80%);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 16px 14px 0;
+    box-sizing: border-box;
+    margin-bottom: 16px;
+  }
+
+  .step-phone-mockup {
+    width: 155px;
+    border-radius: 24px;
+    padding: 6px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  }
+
+  .step-phone-mockup .device-phone-notch {
+    top: 9px;
+    width: 6px;
+    height: 6px;
+  }
+
+  .step-phone-mockup .device-phone-screen {
+    border-radius: 18px;
+  }
+
+  .step-desktop-mockup {
+    width: 100%;
+    max-width: 250px;
+    border-radius: 10px;
+    margin-top: 20px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  }
+
+  .step-desc {
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+
+  .step-desc strong {
+    color: var(--text-primary);
+  }
+
+  @media (max-width: 860px) {
+    .steps-grid {
+      grid-template-columns: 1fr;
+      gap: 20px;
+      max-width: 500px;
+      margin-inline: auto;
+    }
+    .how-section {
+      padding: 60px 0;
+    }
+    .step-card {
+      padding: 20px 16px;
+    }
+    .step-visual-preview {
+      height: 230px;
+    }
+  }
+</style>

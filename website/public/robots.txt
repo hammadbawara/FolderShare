@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://hammadbawara.github.io/FolderShare/sitemap.xml

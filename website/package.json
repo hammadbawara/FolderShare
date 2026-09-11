@@ -1,0 +1,22 @@
+{
+  "name": "website",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "generate:theme": "node scripts/generate-theme.js"
+  },
+  "dependencies": {
+    "@material/material-color-utilities": "^0.2.7",
+    "astro": "^5.18.2"
+  },
+  "allowScripts": {
+    "esbuild": true
+  }
+}

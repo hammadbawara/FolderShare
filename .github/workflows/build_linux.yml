@@ -1,0 +1,96 @@
+name: Build Linux
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag or string (e.g. 1.0.0)'
+        required: false
+        default: '1.0.0'
+        type: string
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version tag or string (e.g. 1.0.0)'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  build:
+    name: Build Linux Packages (.deb & .tar.gz)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Install Linux Packaging Dependencies
+        run: |
+          if ! command -v fakeroot &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y --no-install-recommends fakeroot
+          fi
+          if ! command -v dpkg &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y --no-install-recommends dpkg
+          fi
+
+      - name: Extract Version
+        id: version
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="1.0.0"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building Linux version: $VERSION"
+
+      - name: Build Linux Packages
+        run: ./gradlew :desktopApp:packageLinux -PappVersion="${{ steps.version.outputs.version }}"
+
+      - name: Package Linux Artifacts
+        run: |
+          mkdir -p dist
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Copy Debian installer (.deb)
+          DEB_FILE=$(find desktopApp/build/release -name "*.deb" | head -n 1)
+          if [ -n "$DEB_FILE" ]; then
+            cp "$DEB_FILE" "dist/FolderShare-${VERSION}-linux-amd64.deb"
+          else
+            echo "::error::No .deb installer package found in desktopApp/build/release"
+            exit 1
+          fi
+
+          # Copy Tarball (.tar.gz)
+          TARGZ_FILE=$(find desktopApp/build/release -name "*.tar.gz" | head -n 1)
+          if [ -n "$TARGZ_FILE" ]; then
+            cp "$TARGZ_FILE" "dist/FolderShare-${VERSION}-linux-x64.tar.gz"
+          else
+            echo "::error::No .tar.gz archive found in desktopApp/build/release"
+            exit 1
+          fi
+
+          echo "Prepared Linux artifacts:"
+          ls -lh dist/
+
+      - name: Upload Linux Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifacts
+          path: dist/*
+          retention-days: 1
+          if-no-files-found: error

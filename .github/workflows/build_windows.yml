@@ -1,0 +1,120 @@
+name: Build Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag or string (e.g. 1.0.0)'
+        required: false
+        default: '1.0.0'
+        type: string
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version tag or string (e.g. 1.0.0)'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  build:
+    name: Build Windows Packages (.msi & .zip)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup WiX Toolset
+        shell: pwsh
+        run: |
+          $wixPath = "C:\Program Files (x86)\WiX Toolset v3.11\bin"
+          if (Test-Path $wixPath) {
+            Write-Host "Found pre-installed WiX Toolset at $wixPath"
+            echo "$wixPath" >> $env:GITHUB_PATH
+          } elseif (-not (Get-Command candle.exe -ErrorAction SilentlyContinue)) {
+            Write-Host "WiX Toolset not found, installing via Chocolatey..."
+            choco install wixtoolset --yes --no-progress
+          } else {
+            Write-Host "WiX Toolset is already available in PATH"
+          }
+
+      - name: Extract Version
+        id: version
+        shell: pwsh
+        run: |
+          if ("${{ inputs.version }}" -ne "") {
+            $ver = "${{ inputs.version }}"
+          } elseif ($env:GITHUB_REF -like "refs/tags/*") {
+            $ver = $env:GITHUB_REF_NAME.TrimStart('v')
+          } else {
+            $ver = "1.0.0"
+          }
+          echo "version=$ver" >> $env:GITHUB_OUTPUT
+          Write-Host "Building Windows version: $ver"
+
+      - name: Build Windows Release Packages
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.version.outputs.version }}"
+          .\gradlew.bat :desktopApp:packageWindows "-PappVersion=$ver"
+
+      - name: Sign Windows Installer (Optional)
+        env:
+          WINDOWS_CERT_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        shell: pwsh
+        run: |
+          if ($env:WINDOWS_CERT_BASE64) {
+            Write-Host "Signing Windows MSI installer..."
+            [System.IO.File]::WriteAllBytes("cert.pfx", [System.Convert]::FromBase64String($env:WINDOWS_CERT_BASE64))
+            & signtool sign /f cert.pfx /p "$env:WINDOWS_CERT_PASSWORD" /tr http://timestamp.digicert.com /td sha256 /fd sha256 desktopApp/build/release/*.msi
+          } else {
+            Write-Host "No Windows signing certificate provided. Skipping signing step."
+          }
+
+      - name: Package Windows Artifacts
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.version.outputs.version }}"
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+
+          # Copy MSI
+          $msi = Get-ChildItem -Path "desktopApp/build/release" -Filter "*.msi" | Select-Object -First 1
+          if ($msi) {
+            Copy-Item $msi.FullName -Destination "dist/FolderShare-$ver-windows-x64.msi"
+          } else {
+            Write-Error "No .msi installer found in desktopApp/build/release"
+            exit 1
+          }
+
+          # Copy ZIP
+          $zip = Get-ChildItem -Path "desktopApp/build/release" -Filter "*.zip" | Select-Object -First 1
+          if ($zip) {
+            Copy-Item $zip.FullName -Destination "dist/FolderShare-$ver-windows-x64.zip"
+          }
+
+          # Copy EXE if generated
+          $exe = Get-ChildItem -Path "desktopApp/build/release" -Filter "*.exe" | Select-Object -First 1
+          if ($exe) {
+            Copy-Item $exe.FullName -Destination "dist/FolderShare-$ver-windows-x64.exe"
+          }
+
+          Write-Host "Prepared Windows artifacts:"
+          Get-ChildItem -Path dist
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: dist/*
+          retention-days: 1
+          if-no-files-found: error

@@ -1,0 +1,62 @@
+default_platform(:android)
+
+platform :android do
+
+  def increment_version_code
+    gradle_file = Dir.glob(File.expand_path("../*/build.gradle.kts", __dir__)).find { |f| File.read(f).include?("versionCode") }
+    gradle_file ||= File.expand_path("../app/build.gradle.kts", __dir__)
+
+    content = File.read(gradle_file)
+    old_code = nil
+    updated_content = content.sub(/versionCode\s*=\s*(\d+)/) do
+      old_code = $1.to_i
+      "versionCode = #{old_code + 1}"
+    end
+
+    File.write(gradle_file, updated_content)
+    UI.success("Incremented versionCode in #{File.basename(File.dirname(gradle_file))}/build.gradle.kts from #{old_code} to #{old_code + 1}")
+  end
+
+  desc "Deploy app to Google Play Store"
+  desc "Usage:"
+  desc "  fastlane deploy"
+  desc "  fastlane deploy track:internal"
+  desc "  fastlane deploy track:production upload_metadata:false"
+  desc "  fastlane deploy upload_binary:false"
+  desc "  fastlane deploy bump_version:false"
+  lane :deploy do |options|
+    track = options[:track] || "production"
+    upload_binary = options[:upload_binary].nil? ? true : (options[:upload_binary].to_s == "true")
+    upload_metadata = options[:upload_metadata].nil? ? true : (options[:upload_metadata].to_s == "true")
+    bump_version = options[:bump_version].nil? ? true : (options[:bump_version].to_s == "true")
+
+    if upload_binary
+      increment_version_code if bump_version
+
+      gradle(task: "clean bundleRelease")
+    end
+
+    upload_to_play_store(
+      track: track,
+      aab: upload_binary ? lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH] : nil,
+      skip_upload_aab: !upload_binary,
+      skip_upload_apk: true,
+      skip_upload_metadata: !upload_metadata,
+      skip_upload_changelogs: !upload_metadata,
+      skip_upload_images: !upload_metadata,
+      skip_upload_screenshots: !upload_metadata,
+      release_status: options[:release_status] || "completed"
+    )
+  end
+
+  desc "Download metadata from Google Play Store"
+  lane :download_metadata do |options|
+    download_from_play_store(track: options[:track] || "production")
+  end
+
+  desc "Increment versionCode without building or deploying"
+  lane :bump_version do
+    increment_version_code
+  end
+
+end

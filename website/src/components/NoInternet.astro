@@ -1,0 +1,334 @@
+---
+// NoInternet.astro
+---
+
+<section class="no-internet-section" id="no-internet">
+  <div class="container no-internet-container">
+    <div class="section-header">
+      <span class="section-tag">Zero Cloud Dependency</span>
+      <h2 class="section-title">No Internet Required</h2>
+      <p class="section-desc">
+        Your files are shared directly between devices on the same local network.
+      </p>
+    </div>
+
+    <!-- Visual Network Topology Schematic -->
+    <div class="network-diagram-box">
+      <div class="topology-horizontal">
+        <!-- Node 1: Mobile -->
+        <div class="topo-node topo-source">
+          <div class="topo-icon-circle">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zm5-1h2m-1 13v.01"/>
+            </svg>
+          </div>
+          <span class="topo-label">Mobile</span>
+        </div>
+
+        <!-- Connection Link 1 -->
+        <div class="topo-link topo-link-active" aria-hidden="true">
+          <span class="link-line"></span>
+        </div>
+
+        <!-- Node 2: Local Wi-Fi (Center Hub) -->
+        <div class="topo-node topo-hub">
+          <div class="topo-icon-circle hub-circle">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 18h.01m-2.838-2.828a4 4 0 0 1 5.656 0m-8.485-2.829a8 8 0 0 1 11.314 0"/><path d="M3.515 9.515c4.686-4.687 12.284-4.687 17 0"/>
+            </svg>
+          </div>
+          <span class="topo-label">Local Wi-Fi</span>
+        </div>
+
+        <!-- Connection Link 2 -->
+        <div class="topo-link topo-link-active" aria-hidden="true">
+          <span class="link-line"></span>
+        </div>
+
+        <!-- Node 3: TV / Desktop / Phone -->
+        <div class="topo-node topo-target">
+          <div class="topo-icon-circle">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zm13-6l-4 4l-4-4"/>
+            </svg>
+          </div>
+          <span class="topo-label">TV / Desktop / Phone</span>
+        </div>
+      </div>
+
+      <!-- Disconnected Internet Branch -->
+      <div class="topology-vertical-branch">
+        <div class="branch-connector">
+          <span class="branch-line"></span>
+          <span class="branch-cross" aria-label="Disconnected from external internet">✕</span>
+          <span class="branch-line"></span>
+        </div>
+
+        <div class="topo-node topo-disconnected">
+          <div class="topo-icon-circle disconnected-circle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9.58 5.548q.361-.166.752-.286c1.88-.572 3.956-.193 5.444 1c1.488 1.19 2.162 3.007 1.77 4.769h.99c1.913 0 3.464 1.56 3.464 3.486c0 .957-.383 1.824-1.003 2.454M18 18.004H6.657C4.085 18 2 15.993 2 13.517s2.085-4.482 4.657-4.482c.13-.582.37-1.128.7-1.62M3 3l18 18"/>
+            </svg>
+          </div>
+          <span class="topo-label disconnected-label">Internet (Not Needed)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 Core Offline Advantages -->
+    <div class="offline-highlights-grid">
+      <div class="offline-highlight-card">
+        <div class="highlight-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/>
+          </svg>
+        </div>
+        <h3 class="highlight-title">100% Offline Resilience</h3>
+        <p class="highlight-desc">Works flawlessly when your internet provider goes down, on road trips, or on isolated local Wi-Fi networks.</p>
+      </div>
+
+      <div class="offline-highlight-card">
+        <div class="highlight-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+        </div>
+        <h3 class="highlight-title">Local Gigabit Speeds</h3>
+        <p class="highlight-desc">Transfers at full home Wi-Fi speeds (300–1000 Mbps) with zero ISP data usage and zero throttling.</p>
+      </div>
+
+      <div class="offline-highlight-card">
+        <div class="highlight-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <h3 class="highlight-title">Zero Cloud Exposure</h3>
+        <p class="highlight-desc">Your private media, personal photos, and documents remain strictly inside your home network. No third-party servers.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .no-internet-section {
+    padding: 80px 0;
+    background: var(--md-sys-color-surface-container-low);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .no-internet-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 860px;
+  }
+
+  /* Network Schematic Card */
+  .network-diagram-box {
+    width: 100%;
+    background: var(--md-sys-color-surface-container-lowest);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 40px 24px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 28px;
+  }
+
+  .topology-horizontal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 680px;
+  }
+
+  .topo-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    z-index: 2;
+    flex-shrink: 0;
+  }
+
+  .topo-icon-circle {
+    width: 52px;
+    height: 52px;
+    border-radius: var(--radius-full);
+    background: var(--md-sys-color-surface-container-low);
+    border: 1.5px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .hub-circle {
+    background: var(--md-sys-color-primary-container);
+    border-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary-container);
+    width: 60px;
+    height: 60px;
+  }
+
+  .topo-label {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: center;
+  }
+
+  .topo-link {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    margin: 0 10px;
+    min-width: 40px;
+  }
+
+  .link-line {
+    width: 100%;
+    height: 2px;
+    background: var(--md-sys-color-primary);
+  }
+
+  /* Branch to Internet */
+  .topology-vertical-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: -6px;
+  }
+
+  .branch-connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    height: 64px;
+    justify-content: center;
+  }
+
+  .branch-line {
+    width: 2px;
+    height: 16px;
+    background: var(--md-sys-color-outline-variant);
+  }
+
+  .branch-cross {
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-full);
+    background: #fee2e2;
+    color: #dc2626;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 0.85rem;
+    border: 1px solid #fca5a5;
+  }
+
+  .disconnected-circle {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #b91c1c;
+    width: 46px;
+    height: 46px;
+  }
+
+  .disconnected-label {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+  }
+
+  .offline-highlights-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .offline-highlight-card {
+    background: var(--md-sys-color-surface-container-lowest);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-fast), border-color var(--transition-fast);
+  }
+
+  .offline-highlight-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--md-sys-color-primary);
+  }
+
+  .highlight-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-sm);
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+
+  .highlight-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .highlight-desc {
+    font-size: 0.86rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  @media (max-width: 860px) {
+    .offline-highlights-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .no-internet-section {
+      padding: 60px 0;
+    }
+    .network-diagram-box {
+      padding: 28px 14px 24px;
+    }
+    .topo-icon-circle {
+      width: 42px;
+      height: 42px;
+    }
+    .hub-circle {
+      width: 48px;
+      height: 48px;
+    }
+    .topo-label {
+      font-size: 0.78rem;
+    }
+    .topo-link {
+      margin: 0 4px;
+      min-width: 20px;
+    }
+    .offline-highlight-card {
+      padding: 18px 16px;
+    }
+  }
+</style>

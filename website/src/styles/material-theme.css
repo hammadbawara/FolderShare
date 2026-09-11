@@ -1,0 +1,45 @@
+/**
+ * Material Design 3 Light Theme Tokens
+ * Generated strictly by @material/material-color-utilities
+ * Source Seed Color: #2563EB
+ */
+
+:root {
+  /* M3 Light Color System */
+  --md-sys-color-primary: #0053db;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #dbe1ff;
+  --md-sys-color-on-primary-container: #00174b;
+  --md-sys-color-secondary: #595e72;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #dde1f9;
+  --md-sys-color-on-secondary-container: #161b2c;
+  --md-sys-color-tertiary: #745470;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #ffd6f8;
+  --md-sys-color-on-tertiary-container: #2b122b;
+  --md-sys-color-error: #ba1a1a;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #ffdad6;
+  --md-sys-color-on-error-container: #410002;
+  --md-sys-color-background: #fefbff;
+  --md-sys-color-on-background: #1b1b1f;
+  --md-sys-color-surface: #fefbff;
+  --md-sys-color-on-surface: #1b1b1f;
+  --md-sys-color-surface-variant: #e2e2ec;
+  --md-sys-color-on-surface-variant: #45464f;
+  --md-sys-color-outline: #757680;
+  --md-sys-color-outline-variant: #c5c6d0;
+  --md-sys-color-shadow: #000000;
+  --md-sys-color-scrim: #000000;
+  --md-sys-color-inverse-surface: #303034;
+  --md-sys-color-inverse-on-surface: #f2f0f4;
+  --md-sys-color-inverse-primary: #b4c5ff;
+
+  /* M3 Surface Container Roles */
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f5f3f7;
+  --md-sys-color-surface-container: #efedf1;
+  --md-sys-color-surface-container-high: #e9e7ec;
+  --md-sys-color-surface-container-highest: #e4e2e6;
+}

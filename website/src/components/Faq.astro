@@ -1,0 +1,198 @@
+---
+// Faq.astro
+const GITHUB_REPO = "https://github.com/hammadbawara/FolderShare";
+---
+
+<section class="faq-section" id="faq">
+  <div class="container faq-container">
+    <div class="section-header">
+      <span class="section-tag">Help & Answers</span>
+      <h2 class="section-title">Frequently Asked Questions</h2>
+      <p class="section-desc">
+        Everything you need to know about sharing files and streaming on your home network.
+      </p>
+    </div>
+
+    <div class="faq-list">
+      <details class="m3-card faq-item" open>
+        <summary class="faq-summary">
+          <span>Does Folder Share need an internet connection?</span>
+          <svg class="faq-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m6 9l6 6l6-6"/>
+          </svg>
+        </summary>
+        <div class="faq-body">
+          <p>
+            No! Folder Share works completely over your local Wi-Fi or mobile hotspot. It continues working even if your internet connection goes down, and no data is ever sent to the cloud.
+          </p>
+        </div>
+      </details>
+
+      <details class="m3-card faq-item">
+        <summary class="faq-summary">
+          <span>Do I need to create an account or sign up?</span>
+          <svg class="faq-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m6 9l6 6l6-6"/>
+          </svg>
+        </summary>
+        <div class="faq-body">
+          <p>
+            No account, email, or registration is required. You simply install the app and start sharing right away.
+          </p>
+        </div>
+      </details>
+
+      <details class="m3-card faq-item">
+        <summary class="faq-summary">
+          <span>Can I play movies on my TV without a USB flash drive?</span>
+          <svg class="faq-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m6 9l6 6l6-6"/>
+          </svg>
+        </summary>
+        <div class="faq-body">
+          <p>
+            Yes! Install Folder Share on your Android TV or Google TV and share a folder from your computer or phone. You can browse your video library and play high-definition movies using your TV remote.
+          </p>
+        </div>
+      </details>
+
+      <details class="m3-card faq-item">
+        <summary class="faq-summary">
+          <span>Can I use video players like VLC?</span>
+          <svg class="faq-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m6 9l6 6l6-6"/>
+          </svg>
+        </summary>
+        <div class="faq-body">
+          <p>
+            Yes. Folder Share supports open standards, so you can easily play videos through external players like VLC or Kodi if you prefer.
+          </p>
+        </div>
+      </details>
+
+      <details class="m3-card faq-item">
+        <summary class="faq-summary">
+          <span>Can I access files or stream from an iPhone, iPad, or Mac?</span>
+          <svg class="faq-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m6 9l6 6l6-6"/>
+          </svg>
+        </summary>
+        <div class="faq-body">
+          <p>
+            Yes! While dedicated apps are available for Windows, Linux, and Android, <strong>any device with a modern web browser</strong> (like Safari on iPhone, iPad, or Mac) or media player (like VLC) can browse, download, or stream your shared folders instantly via your local IP address or WebDAV without installing any app.
+          </p>
+        </div>
+      </details>
+
+      <details class="m3-card faq-item">
+        <summary class="faq-summary">
+          <span>How is this different from Plex, Jellyfin, or Windows SMB?</span>
+          <svg class="faq-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m6 9l6 6l6-6"/>
+          </svg>
+        </summary>
+        <div class="faq-body">
+          <p>
+            Zero setup! Unlike Plex or Jellyfin, there is no media server configuration, no database scanning, and no user registration required. Unlike Windows network file sharing (SMB), there are no frustrating permission errors, credential prompts, or firewall issues when connecting from phones or TVs.
+          </p>
+        </div>
+      </details>
+
+      <details class="m3-card faq-item">
+        <summary class="faq-summary">
+          <span>Does Folder Share consume my home internet data limit?</span>
+          <svg class="faq-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m6 9l6 6l6-6"/>
+          </svg>
+        </summary>
+        <div class="faq-body">
+          <p>
+            Not a single byte. All traffic moves directly between your devices across your local Wi-Fi network (LAN). It works at maximum Wi-Fi speed and operates even if your internet connection is unplugged or offline.
+          </p>
+        </div>
+      </details>
+
+      <details class="m3-card faq-item">
+        <summary class="faq-summary">
+          <span>Where can developers and technical users find source code?</span>
+          <svg class="faq-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m6 9l6 6l6-6"/>
+          </svg>
+        </summary>
+        <div class="faq-body">
+          <p>
+            Folder Share is 100% open source. Technical specifications, WebDAV endpoint guides, and source code are available on our <a href={GITHUB_REPO} target="_blank" rel="noopener noreferrer">GitHub repository</a>.
+          </p>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq-section {
+    padding: 80px 0;
+    background: var(--md-sys-color-background);
+  }
+
+  .faq-container {
+    max-width: 760px;
+  }
+
+  .faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .faq-item {
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .faq-item[open] {
+    border-color: var(--md-sys-color-primary);
+  }
+
+  .faq-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+  }
+
+  .faq-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-chevron {
+    color: var(--text-muted);
+    transition: transform var(--transition-fast);
+    flex-shrink: 0;
+    margin-left: 16px;
+  }
+
+  .faq-item[open] .faq-chevron {
+    transform: rotate(180deg);
+    color: var(--md-sys-color-primary);
+  }
+
+  .faq-body {
+    padding: 0 24px 20px;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+
+  .faq-body a {
+    color: var(--md-sys-color-primary);
+    font-weight: 600;
+    text-decoration: underline;
+  }
+</style>

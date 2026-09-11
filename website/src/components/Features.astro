@@ -1,0 +1,119 @@
+---
+// Features.astro
+---
+
+<section class="features-section" id="features">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Why Folder Share</span>
+      <h2 class="section-title">Sharing files made genuinely simple</h2>
+      <p class="section-desc">
+        No complicated settings or cloud accounts. Share what you want with the devices right in your home.
+      </p>
+    </div>
+
+    <div class="features-grid">
+      <!-- Feature 1: Wi-Fi Discovery -->
+      <div class="m3-card feature-card">
+        <div class="feature-icon-wrapper icon-wifi">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 18h.01m-2.838-2.828a4 4 0 0 1 5.656 0m-8.485-2.829a8 8 0 0 1 11.314 0"/><path d="M3.515 9.515c4.686-4.687 12.284-4.687 17 0"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">Finds Devices Automatically</h3>
+        <p class="feature-text">
+          Just open the app on your computer and phone. As long as you are on the same home Wi-Fi, they find each other right away.
+        </p>
+      </div>
+
+      <!-- Feature 2: Video Playback -->
+      <div class="m3-card feature-card">
+        <div class="feature-icon-wrapper icon-play">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7 4v16l13-8z"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">Watch Videos Instantly</h3>
+        <p class="feature-text">
+          Play movies and videos stored on your computer directly on your phone or TV. You can skip forward or backward immediately without waiting.
+        </p>
+      </div>
+
+      <!-- Feature 3: Every Screen -->
+      <div class="m3-card feature-card">
+        <div class="feature-icon-wrapper icon-devices">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect width="8" height="12" x="13" y="8" rx="1"/>
+            <path d="M18 8V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h9"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">Great on TV & Computers</h3>
+        <p class="feature-text">
+          Designed to look great on phones, tablets, PCs, and Android TVs with full remote control navigation for the big screen.
+        </p>
+      </div>
+
+      <!-- Feature 4: Private & Offline -->
+      <div class="m3-card feature-card">
+        <div class="feature-icon-wrapper icon-shield">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M11.46 20.846A12 12 0 0 1 3.5 6A12 12 0 0 0 12 3a12 12 0 0 0 8.5 3a12 12 0 0 1-.09 7.06M15 19l2 2l4-4"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">100% Private & Offline</h3>
+        <p class="feature-text">
+          Your photos and documents never upload to the internet or any server. Everything stays safely inside your home network.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .features-section {
+    padding: 80px 0;
+    background: var(--md-sys-color-background);
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+
+  .feature-card {
+    padding: 32px 28px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .feature-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+  }
+
+  .feature-title {
+    font-size: 1.28rem;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+  }
+
+  .feature-text {
+    color: var(--text-secondary);
+    font-size: 0.96rem;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 768px) {
+    .features-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,4 @@
+Initial release of Folder Share:
+- Local Wi-Fi folder sharing
+- Seekable media streaming with HTTP 206 Partial Content
+- WebDAV protocol support
