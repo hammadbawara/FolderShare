@@ -1,12 +1,21 @@
 ---
 // src/pages/download.astro
 import Layout from '../layouts/Layout.astro';
+import { 
+  GITHUB_RELEASES_URL, 
+  ASSET_CONFIG, 
+  fetchTargetRelease, 
+  generateDownloadUrls 
+} from '../data/downloads';
 
-const GITHUB_REPO = "https://github.com/hammadbawara/FolderShare";
-const GITHUB_RELEASES = `${GITHUB_REPO}/releases`;
-const GITHUB_DOWNLOAD_BASE = `${GITHUB_REPO}/releases/latest/download`;
+// Dynamically resolve target release (stable first, fallback to pre-release) at build time
+const targetRelease = await fetchTargetRelease();
+const currentTag = targetRelease?.tagName ?? "v0.0.6-alpha";
+const isPrerelease = targetRelease?.isPrerelease ?? true;
+const currentVersion = targetRelease?.version ?? currentTag.replace(/^v/, '');
+const downloads = targetRelease?.downloads ?? generateDownloadUrls(currentTag);
 
-// Platform download items
+// Platform download items with direct download binary URLs derived from workflow patterns
 const platformData = {
   linux: {
     name: "Linux",
@@ -14,19 +23,19 @@ const platformData = {
     binaries: [
       {
         id: "deb",
-        name: "DEB Package",
-        badge: ".deb",
-        desc: "Debian, Ubuntu, Linux Mint & derivatives (x86_64)",
-        url: `${GITHUB_RELEASES}/latest`,
-        filename: "FolderShare-linux-amd64.deb",
+        name: ASSET_CONFIG.deb.name,
+        badge: ASSET_CONFIG.deb.badge,
+        desc: ASSET_CONFIG.deb.desc,
+        url: downloads.deb,
+        filename: ASSET_CONFIG.deb.filenameTemplate(currentVersion),
       },
       {
         id: "targz",
-        name: "Standalone TAR.GZ",
-        badge: ".tar.gz",
-        desc: "Universal standalone archive for all Linux distributions",
-        url: `${GITHUB_RELEASES}/latest`,
-        filename: "FolderShare-linux-x64.tar.gz",
+        name: ASSET_CONFIG.targz.name,
+        badge: ASSET_CONFIG.targz.badge,
+        desc: ASSET_CONFIG.targz.desc,
+        url: downloads.targz,
+        filename: ASSET_CONFIG.targz.filenameTemplate(currentVersion),
       },
     ],
   },
@@ -35,20 +44,28 @@ const platformData = {
     subtitle: "Windows Downloads",
     binaries: [
       {
+        id: "exe",
+        name: ASSET_CONFIG.exe.name,
+        badge: ASSET_CONFIG.exe.badge,
+        desc: ASSET_CONFIG.exe.desc,
+        url: downloads.exe,
+        filename: ASSET_CONFIG.exe.filenameTemplate(currentVersion),
+      },
+      {
         id: "msi",
-        name: "MSI Installer",
-        badge: ".msi",
-        desc: "Windows 10 & 11 64-bit standalone installer",
-        url: `${GITHUB_RELEASES}/latest`,
-        filename: "FolderShare-windows-x64.msi",
+        name: ASSET_CONFIG.msi.name,
+        badge: ASSET_CONFIG.msi.badge,
+        desc: ASSET_CONFIG.msi.desc,
+        url: downloads.msi,
+        filename: ASSET_CONFIG.msi.filenameTemplate(currentVersion),
       },
       {
         id: "zip",
-        name: "Portable ZIP",
-        badge: ".zip",
-        desc: "Portable standalone folder — no installation required",
-        url: `${GITHUB_RELEASES}/latest`,
-        filename: "FolderShare-windows-x64.zip",
+        name: ASSET_CONFIG.zip.name,
+        badge: ASSET_CONFIG.zip.badge,
+        desc: ASSET_CONFIG.zip.desc,
+        url: downloads.zip,
+        filename: ASSET_CONFIG.zip.filenameTemplate(currentVersion),
       },
     ],
   },
@@ -58,11 +75,11 @@ const platformData = {
     binaries: [
       {
         id: "apk",
-        name: "Universal Android APK",
-        badge: ".apk",
-        desc: "Direct package for Android phones, tablets & Android TV (Android 7.0+)",
-        url: `${GITHUB_RELEASES}/latest`,
-        filename: "FolderShare-android.apk",
+        name: ASSET_CONFIG.apk.name,
+        badge: ASSET_CONFIG.apk.badge,
+        desc: ASSET_CONFIG.apk.desc,
+        url: downloads.apk,
+        filename: ASSET_CONFIG.apk.filenameTemplate(currentVersion),
       },
     ],
   },
@@ -79,6 +96,10 @@ const platformData = {
       <!-- Page Header -->
       <div class="download-header">
         <h1 class="download-page-title">Downloads</h1>
+        <div class="download-version-badge" title="Active Release Version">
+          <span class="version-dot"></span>
+          <span data-release-label>{currentTag} ({isPrerelease ? "Pre-release" : "Latest Stable"})</span>
+        </div>
         <p class="download-platform-subtitle" id="platform-subtitle">Linux Downloads</p>
       </div>
 
@@ -185,7 +206,7 @@ const platformData = {
       <div class="releases-note-card">
         <p>
           Looking for previous releases, checksums, or source code? 
-          <a href={GITHUB_RELEASES} target="_blank" rel="noopener noreferrer" class="releases-link">
+          <a href={GITHUB_RELEASES_URL} target="_blank" rel="noopener noreferrer" class="releases-link">
             Browse all GitHub Releases ↗
           </a>
         </p>
@@ -213,6 +234,28 @@ const platformData = {
     letter-spacing: -0.03em;
     color: var(--text-primary);
     margin-bottom: 8px;
+  }
+
+  .download-version-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 14px;
+    background: var(--md-sys-color-surface-container-high);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-full);
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--md-sys-color-primary);
+    margin-bottom: 12px;
+  }
+
+  .version-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
   }
 
   .download-platform-subtitle {
@@ -529,4 +572,7 @@ const platformData = {
   // Initial detection on load
   const initialOS = detectClientOS();
   setPlatform(initialOS, false);
+
+  // Dynamically resolve latest stable or fallback pre-release binary downloads
+  import('../scripts/release-resolver');
 </script>
