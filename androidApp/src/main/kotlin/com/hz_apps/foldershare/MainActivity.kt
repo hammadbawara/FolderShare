@@ -31,6 +31,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /*
+    // Kept for future reference if legacy non-SAF file access is needed
     private fun requestStoragePermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
@@ -52,6 +54,7 @@ class MainActivity : ComponentActivity() {
             ActivityCompat.requestPermissions(this, permissions, 100)
         }
     }
+    */
 }
 
 @Preview
