@@ -44,6 +44,7 @@ android {
             excludes += "META-INF/io.netty.versions.properties"
             excludes += "META-INF/native-image/**"
             excludes += "META-INF/LICENSE*"
+            excludes += "META-INF/license/**"
             excludes += "META-INF/NOTICE*"
             excludes += "META-INF/*.version"
             excludes += "META-INF/DEPENDENCIES"
