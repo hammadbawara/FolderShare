@@ -1,6 +1,6 @@
 package com.hz_apps.foldershare.feature.explorer
 
-import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.PlatformFile
 import java.io.FileInputStream
 import java.io.InputStream
 

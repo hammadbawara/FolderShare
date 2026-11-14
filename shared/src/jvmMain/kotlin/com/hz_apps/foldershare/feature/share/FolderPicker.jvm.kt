@@ -1,8 +1,8 @@
 package com.hz_apps.foldershare.feature.share
 
-import io.github.vinceglb.filekit.core.PlatformDirectory
+import io.github.vinceglb.filekit.PlatformFile
 
-actual fun processFolderPick(directory: PlatformDirectory): Pair<String, String> {
+actual fun processFolderPick(directory: PlatformFile): Pair<String, String> {
     val file = directory.file
     val path = file.absolutePath
     val name = file.name.ifEmpty { "Selected Folder" }

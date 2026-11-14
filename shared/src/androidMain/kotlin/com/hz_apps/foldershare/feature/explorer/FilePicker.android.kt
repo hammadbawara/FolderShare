@@ -3,12 +3,17 @@ package com.hz_apps.foldershare.feature.explorer
 import android.content.Intent
 import android.provider.OpenableColumns
 import com.hz_apps.foldershare.core.discovery.AndroidContextProvider
-import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.AndroidFile
+import io.github.vinceglb.filekit.PlatformFile
+import java.io.FileInputStream
 import java.io.InputStream
 
 actual fun platformFileSize(platformFile: PlatformFile): Long {
+    val uri = when (val androidFile = platformFile.androidFile) {
+        is AndroidFile.FileWrapper -> return androidFile.file.length()
+        is AndroidFile.UriWrapper -> androidFile.uri
+    }
     val context = AndroidContextProvider.applicationContext ?: return 0L
-    val uri = platformFile.uri
     var fileSize: Long = 0L
     try {
         context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
@@ -24,9 +29,12 @@ actual fun platformFileSize(platformFile: PlatformFile): Long {
 }
 
 actual fun openPlatformFileStream(platformFile: PlatformFile): InputStream {
+    val uri = when (val androidFile = platformFile.androidFile) {
+        is AndroidFile.FileWrapper -> return FileInputStream(androidFile.file)
+        is AndroidFile.UriWrapper -> androidFile.uri
+    }
     val context = AndroidContextProvider.applicationContext
         ?: throw IllegalStateException("Application context is null")
-    val uri = platformFile.uri
     try {
         context.contentResolver.takePersistableUriPermission(
             uri,

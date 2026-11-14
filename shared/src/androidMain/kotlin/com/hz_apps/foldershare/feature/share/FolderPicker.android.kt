@@ -3,10 +3,17 @@ package com.hz_apps.foldershare.feature.share
 import android.content.Intent
 import android.provider.DocumentsContract
 import com.hz_apps.foldershare.core.discovery.AndroidContextProvider
-import io.github.vinceglb.filekit.core.PlatformDirectory
+import io.github.vinceglb.filekit.AndroidFile
+import io.github.vinceglb.filekit.PlatformFile
 
-actual fun processFolderPick(directory: PlatformDirectory): Pair<String, String> {
-    val uri = directory.uri
+actual fun processFolderPick(directory: PlatformFile): Pair<String, String> {
+    val uri = when (val androidFile = directory.androidFile) {
+        is AndroidFile.FileWrapper -> {
+            val file = androidFile.file
+            return Pair(file.absolutePath, file.name.ifEmpty { "Selected Folder" })
+        }
+        is AndroidFile.UriWrapper -> androidFile.uri
+    }
     val context = AndroidContextProvider.applicationContext
     var folderName: String? = null
 

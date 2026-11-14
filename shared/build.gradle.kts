@@ -113,7 +113,7 @@ kotlin {
 
             // FileKit
             api(libs.filekit.core)
-            api(libs.filekit.compose)
+            api(libs.filekit.dialogs.compose)
 
             // Okio
             api(libs.okio)

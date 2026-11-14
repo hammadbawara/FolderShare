@@ -3,10 +3,11 @@ package com.hz_apps.foldershare.feature.explorer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import com.hz_apps.foldershare.core.explorer.model.LocalFileSource
-import io.github.vinceglb.filekit.core.PickerMode
-import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.dialogs.FileKitMode
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher as rememberFileKitLauncher
+import io.github.vinceglb.filekit.name
 import java.io.InputStream
-import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher as rememberFileKitLauncher
 
 interface FilePickerLauncher {
     fun launch()
@@ -30,7 +31,7 @@ fun rememberFilePickerLauncher(
     onFilesPicked: (fileSources: List<LocalFileSource>) -> Unit
 ): FilePickerLauncher {
     val launcher = rememberFileKitLauncher(
-        mode = PickerMode.Multiple()
+        mode = FileKitMode.Multiple()
     ) { files: List<PlatformFile>? ->
         if (!files.isNullOrEmpty()) {
             onFilesPicked(files.map { FileKitFileSource(it) })
