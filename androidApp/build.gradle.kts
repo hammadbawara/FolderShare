@@ -28,6 +28,7 @@ val appVersionName = (project.findProperty("appVersion") as? String)
 android {
     namespace = "com.hz_apps.foldershare"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
+    compileSdkMinor = 1
 
     defaultConfig {
         applicationId = "com.hz_apps.foldershare"
