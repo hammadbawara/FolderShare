@@ -1,8 +1,6 @@
 package com.hz_apps.foldershare.feature.explorer
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.focusable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +20,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Warning
@@ -34,6 +33,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -48,14 +48,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
@@ -85,7 +77,6 @@ import com.hz_apps.foldershare.ui.components.VerticalScrollbar
 import com.hz_apps.foldershare.ui.components.rememberRetainedFocusState
 import com.hz_apps.foldershare.ui.components.rememberScrollbarAdapter
 import com.hz_apps.foldershare.ui.components.tvFocusContainer
-import kotlinx.coroutines.launch
 
 @Composable
 fun FileExplorerScreen(
@@ -245,7 +236,38 @@ fun FileExplorerScreen(
                 )
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { snackbarData ->
+                val rawMessage = snackbarData.visuals.message
+                val isSuccessTick = rawMessage.startsWith("✓ ")
+                val cleanMessage = if (isSuccessTick) rawMessage.removePrefix("✓ ") else rawMessage
+
+                Snackbar(
+                    modifier = Modifier.padding(16.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    containerColor = MaterialTheme.colorScheme.inverseSurface,
+                    contentColor = MaterialTheme.colorScheme.inverseOnSurface
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        if (isSuccessTick) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Success",
+                                tint = MaterialTheme.colorScheme.inversePrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Text(
+                            text = cleanMessage,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+        },
         modifier = modifier.fillMaxSize()
     ) { paddingValues ->
         Column(
@@ -549,6 +571,8 @@ fun FileExplorerScreen(
             FileTransferProgressDialog(
                 transferProgress = progress,
                 targetDeviceName = uiState.device?.name,
+                isShowMoreExpanded = uiState.isTransferShowMoreExpanded,
+                onToggleShowMore = { expanded -> viewModel.setTransferShowMoreExpanded(expanded) },
                 onCancel = { viewModel.cancelTransfer() },
                 onRetry = { viewModel.retryTransfer() }
             )

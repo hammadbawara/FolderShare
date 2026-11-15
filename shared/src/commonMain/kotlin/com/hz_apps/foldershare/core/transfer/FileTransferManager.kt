@@ -71,16 +71,37 @@ class FileTransferManager(
 
     private fun createThrottledProgressCallback(
         fallbackTotal: Long?,
-        onEmit: (transferred: Long, total: Long?) -> Unit
+        onEmit: (transferred: Long, total: Long?, bytesPerSecond: Long, estimatedRemainingSeconds: Long?) -> Unit
     ): (bytes: Long, total: Long?) -> Unit {
         var lastMark: TimeMark? = null
+        var lastBytes = 0L
+        var smoothedSpeed = 0.0
         return { bytes, total ->
             val resolvedTotal = total ?: fallbackTotal
             val isComplete = resolvedTotal != null && bytes >= resolvedTotal
             val mark = lastMark
             if (isComplete || mark == null || mark.elapsedNow() >= throttleDuration) {
+                val elapsedSeconds = mark?.elapsedNow()?.inWholeMilliseconds?.let { it / 1000.0 } ?: 0.0
+                val deltaBytes = (bytes - lastBytes).coerceAtLeast(0L)
+                val instantSpeed = if (elapsedSeconds > 0.0) (deltaBytes / elapsedSeconds) else 0.0
+                smoothedSpeed = if (smoothedSpeed <= 0.0) {
+                    instantSpeed
+                } else if (instantSpeed > 0.0) {
+                    smoothedSpeed * 0.35 + instantSpeed * 0.65
+                } else {
+                    smoothedSpeed * 0.5
+                }
+                val speedBps = smoothedSpeed.toLong().coerceAtLeast(0L)
+                val etaSeconds = if (resolvedTotal != null && resolvedTotal > bytes && speedBps > 0L) {
+                    ((resolvedTotal - bytes) / speedBps).coerceAtLeast(1L)
+                } else if (isComplete) {
+                    0L
+                } else {
+                    null
+                }
                 lastMark = timeSource.markNow()
-                onEmit(bytes, resolvedTotal)
+                lastBytes = bytes
+                onEmit(bytes, resolvedTotal, speedBps, etaSeconds)
             }
         }
     }
@@ -119,7 +140,8 @@ class FileTransferManager(
         direction: TransferDirection,
         isRetry: Boolean,
         currentFileIndex: Int = 1,
-        totalFilesCount: Int = 1
+        totalFilesCount: Int = 1,
+        destinationPath: String? = null
     ): FileTransferProgress {
         val existing = _transferProgress.value
         val isSameFile = isRetry && existing != null && existing.fileName == fileName
@@ -146,7 +168,8 @@ class FileTransferManager(
             errorMessage = initialError,
             isAutoRetrying = isSameFile,
             currentFileIndex = currentFileIndex,
-            totalFilesCount = totalFilesCount
+            totalFilesCount = totalFilesCount,
+            destinationPath = destinationPath ?: existing?.destinationPath
         )
     }
 
@@ -214,17 +237,19 @@ class FileTransferManager(
 
                 fileTransferController.startTransferService()
                 val initialTotal = if (file.size > 0) file.size else null
+                val destDirDisplay = (currentDownloadDestinationPath?.parent ?: currentDownloadDestinationDirectory)?.toString()
                 _transferProgress.value = computeInitialProgress(
                     fileName = file.name,
                     totalSize = initialTotal,
                     direction = TransferDirection.DOWNLOAD,
-                    isRetry = isRetry
+                    isRetry = isRetry,
+                    destinationPath = destDirDisplay
                 )
 
                 transferJob = managerScope.launch {
                     try {
                         logger.d { "Executing repository.downloadFile for ${file.name}" }
-                        val progressCallback = createThrottledProgressCallback(initialTotal) { downloaded, total ->
+                        val progressCallback = createThrottledProgressCallback(initialTotal) { downloaded, total, speedBps, etaSeconds ->
                             _transferProgress.update { current ->
                                 if (current?.fileName != file.name) return@update current
                                 current.copy(
@@ -233,7 +258,9 @@ class FileTransferManager(
                                     progress = if (total != null && total > 0) (downloaded.toFloat() / total.toFloat()).coerceIn(0f, 1f) else null,
                                     status = TransferStatus.IN_PROGRESS,
                                     errorMessage = null,
-                                    isAutoRetrying = false
+                                    isAutoRetrying = false,
+                                    bytesPerSecond = speedBps,
+                                    estimatedRemainingSeconds = etaSeconds
                                 )
                             }
                         }
@@ -324,7 +351,8 @@ class FileTransferManager(
                     direction = TransferDirection.UPLOAD,
                     isRetry = isRetry,
                     currentFileIndex = 1,
-                    totalFilesCount = sources.size
+                    totalFilesCount = sources.size,
+                    destinationPath = parentPath
                 )
 
                 transferJob = managerScope.launch {
@@ -343,12 +371,13 @@ class FileTransferManager(
                                         direction = TransferDirection.UPLOAD,
                                         isRetry = isRetry,
                                         currentFileIndex = index + 1,
-                                        totalFilesCount = totalFiles
+                                        totalFilesCount = totalFiles,
+                                        destinationPath = parentPath
                                     )
                                 }
                             }
 
-                            val progressCallback = createThrottledProgressCallback(sourceTotal) { bytesUploaded, totalBytes ->
+                            val progressCallback = createThrottledProgressCallback(sourceTotal) { bytesUploaded, totalBytes, speedBps, etaSeconds ->
                                 _transferProgress.update { current ->
                                     if (current?.fileName != localFileSource.name) return@update current
                                     current.copy(
@@ -357,7 +386,9 @@ class FileTransferManager(
                                         progress = if (totalBytes != null && totalBytes > 0) (bytesUploaded.toFloat() / totalBytes.toFloat()).coerceIn(0f, 1f) else null,
                                         status = TransferStatus.IN_PROGRESS,
                                         errorMessage = null,
-                                        isAutoRetrying = false
+                                        isAutoRetrying = false,
+                                        bytesPerSecond = speedBps,
+                                        estimatedRemainingSeconds = etaSeconds
                                     )
                                 }
                             }

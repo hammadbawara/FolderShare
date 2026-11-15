@@ -325,4 +325,70 @@ class FileExplorerViewModelTest {
         viewModel.setFocusedPath("/Documents/report.pdf")
         assertEquals("/Documents/report.pdf", viewModel.uiState.value.targetFocusPath)
     }
+
+    @Test
+    fun testSaveToDeviceSetsTickmarkSuccessUserMessageWithPath() = runTest(testDispatcher) {
+        val repo = FakeRemoteFileRepository()
+        val platformHandler = RecordingPlatformFileHandler()
+        val resolver = TestDeviceResolver()
+        val transferController = FakeFileTransferController()
+        val transferManager = FileTransferManager(repo, transferController, resolver, platformHandler, testDispatcher)
+
+        val viewModel = FileExplorerViewModel(
+            repository = repo,
+            platformFileHandler = platformHandler,
+            deviceResolver = resolver,
+            fileTransferManager = transferManager
+        )
+
+        viewModel.setTargetDevice(testDevice)
+        advanceUntilIdle()
+
+        viewModel.saveToDevice(testFile)
+        advanceUntilIdle()
+
+        assertEquals(
+            "✓ report.pdf is downloaded to /downloads/report.pdf successfully",
+            viewModel.uiState.value.userMessage
+        )
+    }
+
+    @Test
+    fun testSetTransferShowMoreExpandedPersistsInClientPreferenceDao() = runTest(testDispatcher) {
+        val repo = FakeRemoteFileRepository()
+        val platformHandler = RecordingPlatformFileHandler()
+        val resolver = TestDeviceResolver()
+        val transferController = FakeFileTransferController()
+        val transferManager = FileTransferManager(repo, transferController, resolver, platformHandler, testDispatcher)
+
+        val prefFlow = MutableStateFlow<com.hz_apps.foldershare.data.database.ClientPreferenceEntity?>(
+            com.hz_apps.foldershare.data.database.ClientPreferenceEntity(isTransferShowMoreExpanded = false)
+        )
+        val fakeClientPreferenceDao = object : com.hz_apps.foldershare.data.database.ClientPreferenceDao {
+            override fun getClientPreferenceFlow() = prefFlow.asStateFlow()
+            override suspend fun getClientPreference() = prefFlow.value
+            override suspend fun insertOrUpdateClientPreference(
+                preference: com.hz_apps.foldershare.data.database.ClientPreferenceEntity
+            ) {
+                prefFlow.value = preference
+            }
+        }
+
+        val viewModel = FileExplorerViewModel(
+            repository = repo,
+            platformFileHandler = platformHandler,
+            deviceResolver = resolver,
+            fileTransferManager = transferManager,
+            clientPreferenceDao = fakeClientPreferenceDao
+        )
+        advanceUntilIdle()
+
+        assertEquals(false, viewModel.uiState.value.isTransferShowMoreExpanded)
+
+        viewModel.setTransferShowMoreExpanded(true)
+        advanceUntilIdle()
+
+        assertEquals(true, viewModel.uiState.value.isTransferShowMoreExpanded)
+        assertEquals(true, fakeClientPreferenceDao.getClientPreference()?.isTransferShowMoreExpanded)
+    }
 }

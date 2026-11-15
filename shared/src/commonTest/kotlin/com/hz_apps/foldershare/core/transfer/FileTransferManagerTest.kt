@@ -137,6 +137,7 @@ class FileTransferManagerTest {
         assertEquals(10_000_000L, progress.totalBytes)
         assertEquals(0f, progress.progress)
         assertEquals(TransferStatus.IN_PROGRESS, progress.status)
+        assertEquals("/downloads", progress.destinationPath)
 
         gate.complete(Unit)
         advanceUntilIdle()

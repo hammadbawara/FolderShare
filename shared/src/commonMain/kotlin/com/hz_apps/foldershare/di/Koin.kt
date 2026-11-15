@@ -12,6 +12,7 @@ import com.hz_apps.foldershare.core.server.ServerController
 import com.hz_apps.foldershare.core.server.ServerManager
 import com.hz_apps.foldershare.core.server.createServerController
 import com.hz_apps.foldershare.data.database.AppDatabase
+import com.hz_apps.foldershare.data.database.ClientPreferenceDao
 import com.hz_apps.foldershare.data.database.DeviceCredentialDao
 import com.hz_apps.foldershare.data.database.FolderConfigDao
 import com.hz_apps.foldershare.data.database.ServerConfigDao
@@ -33,6 +34,7 @@ val coreModule = module {
     single<FolderConfigDao> { get<AppDatabase>().folderConfigDao() }
     single<ServerConfigDao> { get<AppDatabase>().serverConfigDao() }
     single<DeviceCredentialDao> { get<AppDatabase>().deviceCredentialDao() }
+    single<ClientPreferenceDao> { get<AppDatabase>().clientPreferenceDao() }
     single<DeviceDiscoveryEngine> { createDeviceDiscoveryEngine() }
     single<ServiceAdvertiser> { get<DeviceDiscoveryEngine>() }
     single<ServiceBrowser> { get<DeviceDiscoveryEngine>() }
@@ -54,7 +56,7 @@ val coreModule = module {
 val viewModelModule = module {
     viewModel { ShareViewModel(get(), get(), get(), get()) }
     viewModel { DevicesViewModel(get(), get(), get(), get(), get(), get()) }
-    viewModel { FileExplorerViewModel(get(), get(), get(), get(), get()) }
+    viewModel { FileExplorerViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { SettingsViewModel(get()) }
     viewModel { DeviceAuthViewModel(get(), get()) }
 }

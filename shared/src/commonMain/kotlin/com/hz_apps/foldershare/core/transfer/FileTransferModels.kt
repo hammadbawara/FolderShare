@@ -22,7 +22,10 @@ data class FileTransferProgress(
     val errorMessage: String? = null,
     val isAutoRetrying: Boolean = false,
     val currentFileIndex: Int = 1,
-    val totalFilesCount: Int = 1
+    val totalFilesCount: Int = 1,
+    val destinationPath: String? = null,
+    val bytesPerSecond: Long = 0L,
+    val estimatedRemainingSeconds: Long? = null
 )
 
 typealias FileSaveProgress = FileTransferProgress

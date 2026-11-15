@@ -1,8 +1,14 @@
 package com.hz_apps.foldershare.feature.explorer.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,18 +19,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -36,9 +44,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
@@ -53,6 +61,8 @@ import kotlin.math.pow
 fun FileTransferProgressDialog(
     transferProgress: FileTransferProgress,
     targetDeviceName: String? = null,
+    isShowMoreExpanded: Boolean = false,
+    onToggleShowMore: (Boolean) -> Unit = {},
     onCancel: () -> Unit,
     onRetry: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -116,7 +126,9 @@ fun FileTransferProgressDialog(
                     text = titleText,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
-                    )
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         },
@@ -125,6 +137,7 @@ fun FileTransferProgressDialog(
                 modifier = Modifier.fillMaxWidth(),
                 state = scrollState
             ) {
+                // 1. File Name
                 val nameDisplay = if (transferProgress.totalFilesCount > 1) {
                     "(${transferProgress.currentFileIndex}/${transferProgress.totalFilesCount}) ${transferProgress.fileName}"
                 } else {
@@ -141,8 +154,9 @@ fun FileTransferProgressDialog(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
+                // 2. Thick Progress Bar
                 val progress = transferProgress.progress
                 val progressColor = when {
                     isError -> MaterialTheme.colorScheme.error
@@ -152,86 +166,143 @@ fun FileTransferProgressDialog(
                 val targetProgress = progress ?: 0f
                 val animatedProgress by animateFloatAsState(
                     targetValue = targetProgress,
-                    animationSpec = tween(durationMillis = 1000, easing = LinearEasing),
+                    animationSpec = tween(durationMillis = 600, easing = LinearEasing),
                     label = "transferProgressBarAnimation"
                 )
 
-                // Progress Bar with Percentage Badge
+                if (progress != null) {
+                    LinearProgressIndicator(
+                        progress = { animatedProgress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(12.dp)
+                            .clip(CircleShape),
+                        color = progressColor,
+                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        strokeCap = StrokeCap.Round
+                    )
+                } else {
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(12.dp)
+                            .clip(CircleShape),
+                        color = progressColor,
+                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        strokeCap = StrokeCap.Round
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 3. Percentage - Remaining Time
+                val pctText = if (progress != null) "${(progress * 100).toInt()}%" else "0%"
+                val etaStr = formatEta(transferProgress.estimatedRemainingSeconds, transferProgress.bytesPerSecond)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = pctText,
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Text(
+                        text = etaStr,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // 4. Show more v / Show less ^ Toggle
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
+                            onToggleShowMore(!isShowMoreExpanded)
+                        }
+                        .padding(vertical = 4.dp, horizontal = 2.dp)
                 ) {
-                    Box(
+                    Text(
+                        text = if (isShowMoreExpanded) "Show less" else "Show more",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = if (isShowMoreExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (isShowMoreExpanded) "Show less" else "Show more",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                // 5. Expandable Details (Speed, Downloaded out of total, Save Path)
+                AnimatedVisibility(
+                    visible = isShowMoreExpanded,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    val transferredStr = formatByteSize(transferProgress.bytesTransferred)
+                    val totalStr = transferProgress.totalBytes?.let { formatByteSize(it) }
+                    val sizeDetailText = if (totalStr != null) {
+                        "$transferredStr of $totalStr"
+                    } else {
+                        transferredStr
+                    }
+
+                    val speedStr = if (transferProgress.bytesPerSecond > 0L) {
+                        "${formatByteSize(transferProgress.bytesPerSecond)}/s"
+                    } else {
+                        "0 B/s"
+                    }
+
+                    Column(
                         modifier = Modifier
-                            .weight(1f)
-                            .clip(CircleShape)
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        if (progress != null) {
-                            LinearProgressIndicator(
-                                progress = { animatedProgress },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(10.dp),
-                                color = progressColor,
-                                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                            )
-                        } else {
-                            LinearProgressIndicator(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(10.dp),
-                                color = progressColor,
-                                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                        )
+
+                        Spacer(modifier = Modifier.height(2.dp))
+
+                        DetailRow(
+                            label = "Speed",
+                            value = speedStr,
+                            isMonospace = true
+                        )
+
+                        DetailRow(
+                            label = if (isUpload) "Uploaded" else "Downloaded",
+                            value = sizeDetailText,
+                            isMonospace = true
+                        )
+
+                        if (!transferProgress.destinationPath.isNullOrBlank()) {
+                            DetailRow(
+                                label = if (isUpload) "Destination" else "Saving to",
+                                value = transferProgress.destinationPath
                             )
                         }
                     }
-
-                    if (progress != null) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.widthIn(min = 52.dp)
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = "${(progress * 100).toInt()}%",
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontFamily = FontFamily.Monospace
-                                    ),
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
-                    }
                 }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                val transferredStr = formatByteSize(transferProgress.bytesTransferred)
-                val totalStr = transferProgress.totalBytes?.let { formatByteSize(it) }
-                val detailText = if (totalStr != null && progress != null) {
-                    "$transferredStr / $totalStr"
-                } else {
-                    val actionLabel = if (isUpload) "uploaded" else "downloaded"
-                    "$transferredStr $actionLabel"
-                }
-
-                Text(
-                    text = detailText,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontFamily = FontFamily.Monospace
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
 
                 if (!transferProgress.errorMessage.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
@@ -287,6 +358,58 @@ fun FileTransferProgressDialog(
     )
 }
 
+@Composable
+private fun DetailRow(
+    label: String,
+    value: String,
+    isMonospace: Boolean = false
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(92.dp)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontWeight = FontWeight.Medium,
+                fontFamily = if (isMonospace) FontFamily.Monospace else FontFamily.Default
+            ),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+private fun formatEta(estimatedRemainingSeconds: Long?, bytesPerSecond: Long): String {
+    if (estimatedRemainingSeconds == null || bytesPerSecond <= 0L) {
+        return "Calculating time..."
+    }
+    if (estimatedRemainingSeconds <= 0L) {
+        return "Finishing up..."
+    }
+    return when {
+        estimatedRemainingSeconds < 60L -> "About ${estimatedRemainingSeconds}s left"
+        estimatedRemainingSeconds < 3600L -> {
+            val mins = estimatedRemainingSeconds / 60L
+            val secs = estimatedRemainingSeconds % 60L
+            if (secs > 0L) "About ${mins}m ${secs}s left" else "About ${mins}m left"
+        }
+        else -> {
+            val hours = estimatedRemainingSeconds / 3600L
+            val mins = (estimatedRemainingSeconds % 3600L) / 60L
+            "About ${hours}h ${mins}m left"
+        }
+    }
+}
 
 private fun formatByteSize(bytes: Long): String {
     if (bytes <= 0) return "0 B"

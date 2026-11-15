@@ -16,6 +16,8 @@ import com.hz_apps.foldershare.core.transfer.FileTransferManager
 import com.hz_apps.foldershare.core.transfer.FileTransferProgress
 import com.hz_apps.foldershare.core.transfer.TransferDirection
 import com.hz_apps.foldershare.core.transfer.TransferStatus
+import com.hz_apps.foldershare.data.database.ClientPreferenceDao
+import com.hz_apps.foldershare.data.database.ClientPreferenceEntity
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,11 +29,6 @@ data class PathSegment(
     val name: String,
     val fullPath: String
 )
-
-typealias TransferDirection = com.hz_apps.foldershare.core.transfer.TransferDirection
-typealias TransferStatus = com.hz_apps.foldershare.core.transfer.TransferStatus
-typealias FileTransferProgress = com.hz_apps.foldershare.core.transfer.FileTransferProgress
-typealias FileSaveProgress = com.hz_apps.foldershare.core.transfer.FileSaveProgress
 
 data class FileExplorerUiState(
     val device: RemoteTargetDevice? = null,
@@ -54,7 +51,8 @@ data class FileExplorerUiState(
     val selectedFileForOpenOptions: RemoteFile? = null,
     val showCreateFolderDialog: Boolean = false,
     val showCreateFileDialog: Boolean = false,
-    val showSortDialog: Boolean = false
+    val showSortDialog: Boolean = false,
+    val isTransferShowMoreExpanded: Boolean = false
 ) {
     val saveProgress: FileTransferProgress? get() = transferProgress
 }
@@ -64,7 +62,8 @@ class FileExplorerViewModel(
     private val platformFileHandler: PlatformFileHandler,
     private val deviceResolver: DeviceResolver,
     private val fileTransferManager: FileTransferManager,
-    private val streamProxyController: com.hz_apps.foldershare.core.proxy.StreamProxyController? = null
+    private val streamProxyController: com.hz_apps.foldershare.core.proxy.StreamProxyController? = null,
+    private val clientPreferenceDao: ClientPreferenceDao? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FileExplorerUiState())
@@ -79,17 +78,25 @@ class FileExplorerViewModel(
                 _uiState.update { it.copy(transferProgress = progress) }
             }
         }
+        viewModelScope.launch {
+            clientPreferenceDao?.getClientPreferenceFlow()?.collect { pref ->
+                if (pref != null) {
+                    _uiState.update { it.copy(isTransferShowMoreExpanded = pref.isTransferShowMoreExpanded) }
+                }
+            }
+        }
     }
 
     fun setTargetDevice(device: RemoteTargetDevice, username: String? = null, password: String? = null, initialPath: String = "/") {
         deviceResolver.registerManualDevice(device)
 
-        _uiState.update { 
+        _uiState.update { prev ->
             FileExplorerUiState(
                 device = device,
                 currentPath = initialPath,
-                pathSegments = PathUtils.buildPathSegments(initialPath)
-            ) 
+                pathSegments = PathUtils.buildPathSegments(initialPath),
+                isTransferShowMoreExpanded = prev.isTransferShowMoreExpanded
+            )
         }
 
         deviceObservationJob?.cancel()
@@ -310,7 +317,17 @@ class FileExplorerViewModel(
 
     fun saveToDevice(file: RemoteFile, customDestinationDirectory: okio.Path? = null) {
         val device = _uiState.value.device ?: return
-        fileTransferManager.startDownload(device, file, destinationDirectory = customDestinationDirectory)
+        fileTransferManager.startDownload(
+            device = device,
+            file = file,
+            destinationDirectory = customDestinationDirectory,
+            onSuccess = { savedPath ->
+                _uiState.update {
+                    val filename = if (file.name.length < 20) file.name else file.name.slice(IntRange(0, 20)) + "..."
+                    it.copy(userMessage = "✓ $filename saved to $savedPath successfully")
+                }
+            }
+        )
     }
 
     fun uploadFiles(localFileSources: List<LocalFileSource>) {
@@ -495,6 +512,16 @@ class FileExplorerViewModel(
     fun toggleShowHiddenFiles() {
         val currentOption = _uiState.value.sortOption
         updateSortOption(currentOption.copy(showHiddenFiles = !currentOption.showHiddenFiles))
+    }
+
+    fun setTransferShowMoreExpanded(expanded: Boolean) {
+        _uiState.update { it.copy(isTransferShowMoreExpanded = expanded) }
+        viewModelScope.launch {
+            val current = clientPreferenceDao?.getClientPreference() ?: ClientPreferenceEntity()
+            clientPreferenceDao?.insertOrUpdateClientPreference(
+                current.copy(isTransferShowMoreExpanded = expanded)
+            )
+        }
     }
 
     fun clearUserMessage() {
