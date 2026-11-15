@@ -1,11 +1,10 @@
 package com.hz_apps.foldershare.feature.explorer.components
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.focusable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,10 +15,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -32,17 +34,16 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,13 +58,21 @@ fun OpenFileOptionsDialog(
     onDismiss: () -> Unit,
     onConfirm: (FileOpenOption) -> Unit
 ) {
-    var selectedOption by remember { mutableStateOf(FileOpenOption.DIRECT_OPEN) }
     val icon = getFileIcon(file)
     val iconTint = getFileIconTint(file)
 
     val directOpenRequester = remember { FocusRequester() }
     val tempSaveRequester = remember { FocusRequester() }
+    val cancelRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    var hasConfirmed by remember { mutableStateOf(false) }
+
+    val triggerConfirm: (FileOpenOption) -> Unit = { option ->
+        if (!hasConfirmed) {
+            hasConfirmed = true
+            onConfirm(option)
+        }
+    }
 
     LaunchedEffect(Unit) {
         try {
@@ -73,89 +82,66 @@ fun OpenFileOptionsDialog(
 
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Open File",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold
-                )
-            )
-        },
+        title = null,
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // File info summary card
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                // File header card
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = iconTint.copy(alpha = 0.15f),
+                        modifier = Modifier.size(44.dp)
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = iconTint.copy(alpha = 0.15f),
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = icon,
-                                    contentDescription = null,
-                                    tint = iconTint,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = file.name,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = iconTint,
+                                modifier = Modifier.size(24.dp)
                             )
-                            if (file.formattedSize.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = file.formattedSize,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = file.name,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (file.formattedSize.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = file.formattedSize,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    text = "Choose how to open this file:",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Option 1: Direct Open
-                FileOpenOptionCard(
-                    option = FileOpenOption.DIRECT_OPEN,
-                    title = "Direct Open",
-                    description = "Stream and open directly in external app without saving locally",
-                    isSelected = (selectedOption == FileOpenOption.DIRECT_OPEN),
+                // Option 1: Open Instantly
+                FileOpenActionCard(
+                    icon = Icons.AutoMirrored.Filled.OpenInNew,
+                    title = "Open Instantly",
+                    subtitle = "Open directly without downloading",
+                    secondaryNote = null,
                     focusRequester = directOpenRequester,
-                    onSelect = { selectedOption = FileOpenOption.DIRECT_OPEN },
-                    onConfirm = { onConfirm(FileOpenOption.DIRECT_OPEN) },
+                    onClick = { triggerConfirm(FileOpenOption.DIRECT_OPEN) },
                     onNavigateUp = null,
                     onNavigateDown = {
                         try {
@@ -166,17 +152,16 @@ fun OpenFileOptionsDialog(
                     }
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                // Option 2: Temporary Save & Open
-                FileOpenOptionCard(
-                    option = FileOpenOption.TEMPORARY_SAVE_AND_OPEN,
-                    title = "Temporary Save & Open",
-                    description = "Download to temporary cache folder and open locally",
-                    isSelected = (selectedOption == FileOpenOption.TEMPORARY_SAVE_AND_OPEN),
+                // Option 2: Download & Open
+                FileOpenActionCard(
+                    icon = Icons.Default.Download,
+                    title = "Download & Open",
+                    subtitle = "Use if the app can't open directly",
+                    secondaryNote = "Clears automatically on app exit",
                     focusRequester = tempSaveRequester,
-                    onSelect = { selectedOption = FileOpenOption.TEMPORARY_SAVE_AND_OPEN },
-                    onConfirm = { onConfirm(FileOpenOption.TEMPORARY_SAVE_AND_OPEN) },
+                    onClick = { triggerConfirm(FileOpenOption.TEMPORARY_SAVE_AND_OPEN) },
                     onNavigateUp = {
                         try {
                             directOpenRequester.requestFocus()
@@ -185,20 +170,33 @@ fun OpenFileOptionsDialog(
                         }
                     },
                     onNavigateDown = {
-                        focusManager.moveFocus(FocusDirection.Down)
+                        try {
+                            cancelRequester.requestFocus()
+                        } catch (_: Exception) {
+                            focusManager.moveFocus(FocusDirection.Down)
+                        }
                     }
                 )
             }
         },
         confirmButton = {
-            Button(
-                onClick = { onConfirm(selectedOption) }
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .focusRequester(cancelRequester)
+                    .onKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
+                            try {
+                                tempSaveRequester.requestFocus()
+                                true
+                            } catch (_: Exception) {
+                                false
+                            }
+                        } else {
+                            false
+                        }
+                    }
             ) {
-                Text("Open")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
                 Text("Cancel")
             }
         }
@@ -206,14 +204,13 @@ fun OpenFileOptionsDialog(
 }
 
 @Composable
-private fun FileOpenOptionCard(
-    option: FileOpenOption,
+private fun FileOpenActionCard(
+    icon: ImageVector,
     title: String,
-    description: String,
-    isSelected: Boolean,
+    subtitle: String,
+    secondaryNote: String?,
     focusRequester: FocusRequester,
-    onSelect: () -> Unit,
-    onConfirm: () -> Unit,
+    onClick: () -> Unit,
     onNavigateUp: (() -> Unit)?,
     onNavigateDown: (() -> Unit)?,
     modifier: Modifier = Modifier
@@ -221,48 +218,62 @@ private fun FileOpenOptionCard(
     var isFocused by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
-    val currentOnSelect by rememberUpdatedState(onSelect)
-    val currentOnConfirm by rememberUpdatedState(onConfirm)
+    val currentOnClick by rememberUpdatedState(onClick)
     val currentOnNavigateUp by rememberUpdatedState(onNavigateUp)
     val currentOnNavigateDown by rememberUpdatedState(onNavigateDown)
 
-    val backgroundColor = when {
-        isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-        isHovered -> MaterialTheme.colorScheme.surfaceContainerHigh
-        else -> MaterialTheme.colorScheme.surface
-    }
+    val isHighlighted = isFocused || isHovered
+
+    val backgroundColor by animateColorAsState(
+        targetValue = when {
+            isFocused -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+            isHovered -> MaterialTheme.colorScheme.surfaceContainerHigh
+            else -> MaterialTheme.colorScheme.surfaceContainerLow
+        },
+        label = "ActionCardBackground"
+    )
 
     val borderStroke = when {
         isFocused -> BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-        isSelected -> BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
-        else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+        isHovered -> BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+        else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
     }
 
+    val iconContainerColor by animateColorAsState(
+        targetValue = if (isHighlighted) {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHighest
+        },
+        label = "ActionCardIconBg"
+    )
+
+    val iconTint by animateColorAsState(
+        targetValue = if (isHighlighted) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        label = "ActionCardIconTint"
+    )
+
     Surface(
+        onClick = currentOnClick,
         color = backgroundColor,
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(12.dp),
         border = borderStroke,
+        interactionSource = interactionSource,
         modifier = modifier
             .fillMaxWidth()
             .focusRequester(focusRequester)
             .onFocusChanged { state ->
                 isFocused = state.isFocused
-                if (state.isFocused) {
-                    currentOnSelect()
-                }
             }
-            .focusable(interactionSource = interactionSource)
-            .hoverable(interactionSource = interactionSource)
             .onKeyEvent { event ->
                 if (event.type == KeyEventType.KeyDown) {
                     when (event.key) {
                         Key.Enter, Key.NumPadEnter, Key.DirectionCenter -> {
-                            currentOnSelect()
-                            currentOnConfirm()
-                            true
-                        }
-                        Key.Spacebar -> {
-                            currentOnSelect()
+                            currentOnClick()
                             true
                         }
                         Key.DirectionUp -> {
@@ -287,51 +298,81 @@ private fun FileOpenOptionCard(
                     false
                 }
             }
-            .clip(RoundedCornerShape(10.dp))
-            .pointerInput(option) {
-                detectTapGestures(
-                    onTap = {
-                        try {
-                            focusRequester.requestFocus()
-                        } catch (_: Exception) {}
-                        currentOnSelect()
-                    },
-                    onDoubleTap = {
-                        try {
-                            focusRequester.requestFocus()
-                        } catch (_: Exception) {}
-                        currentOnSelect()
-                        currentOnConfirm()
-                    }
-                )
-            }
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 10.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            RadioButton(
-                selected = isSelected,
-                onClick = null
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = iconContainerColor,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyMedium.copy(
+                    style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.SemiBold
                     ),
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = description,
+                    text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (secondaryNote != null) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Text(
+                            text = secondaryNote,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                        )
+                    }
+                }
             }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = if (isHighlighted) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                },
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }
+
 

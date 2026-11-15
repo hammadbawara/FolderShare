@@ -10,9 +10,11 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import com.hz_apps.foldershare.core.discovery.DeviceDiscoveryEngine
 import com.hz_apps.foldershare.core.discovery.JvmDeviceDiscoveryEngine
+import com.hz_apps.foldershare.core.explorer.util.PlatformFileHandler
 import com.hz_apps.foldershare.core.server.ServerManager
 import com.hz_apps.foldershare.di.initKoin
 import com.hz_apps.foldershare.ui.components.ActionProgressDialog
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -21,6 +23,17 @@ fun main() {
     val koinApp = initKoin()
     val serverManager = koinApp.koin.get<ServerManager>()
     val discoveryEngine = koinApp.koin.get<DeviceDiscoveryEngine>()
+    val platformFileHandler = koinApp.koin.get<PlatformFileHandler>()
+
+    CoroutineScope(Dispatchers.IO).launch {
+        runCatching { platformFileHandler.clearTemporaryDirectory() }
+    }
+
+    Runtime.getRuntime().addShutdownHook(
+        Thread {
+            runCatching { platformFileHandler.clearTemporaryDirectory() }
+        }
+    )
 
     application {
         var isShuttingDown by remember { mutableStateOf(false) }
@@ -41,6 +54,8 @@ fun main() {
                                 shutdownProgressText = "Disposing discovery engine..."
                                 runCatching { discoveryEngine.dispose() }
                             }
+                            shutdownProgressText = "Clearing temporary cache..."
+                            runCatching { platformFileHandler.clearTemporaryDirectory() }
                         }
                         exitApplication()
                     }

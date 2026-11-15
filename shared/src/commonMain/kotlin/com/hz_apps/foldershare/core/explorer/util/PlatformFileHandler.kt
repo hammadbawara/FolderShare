@@ -6,6 +6,20 @@ package com.hz_apps.foldershare.core.explorer.util
 interface PlatformFileHandler {
     fun getDefaultDownloadDirectory(): okio.Path
     fun getTemporaryDirectory(): okio.Path
+    fun clearTemporaryDirectory(fileSystem: okio.FileSystem = okio.FileSystem.SYSTEM) {
+        try {
+            val tempDir = getTemporaryDirectory()
+            if (fileSystem.exists(tempDir)) {
+                fileSystem.listOrNull(tempDir)?.forEach { child ->
+                    try {
+                        fileSystem.deleteRecursively(child)
+                    } catch (_: Exception) {
+                    }
+                }
+            }
+        } catch (_: Exception) {
+        }
+    }
     fun getDownloadDestinationPath(fileName: String, customDirectory: okio.Path? = null): okio.Path
     fun openFile(
         downloadUrl: String,
