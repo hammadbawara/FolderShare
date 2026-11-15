@@ -9,13 +9,15 @@ import java.awt.datatransfer.StringSelection
 class JvmPlatformFileHandler(
     private val linuxOpener: DesktopFileOpener = LinuxDesktopFileOpener(),
     private val windowsOpener: DesktopFileOpener = WindowsDesktopFileOpener(),
-    private val defaultOpener: DesktopFileOpener = DefaultDesktopFileOpener()
+    private val defaultOpener: DesktopFileOpener = DefaultDesktopFileOpener(),
+    private val downloadDirectoryResolver: DesktopDownloadDirectoryResolver = DesktopDownloadDirectoryResolver()
 ) : PlatformFileHandler {
 
-    override fun getDefaultDownloadDirectory(): Path {
-        val homeDirStr = System.getProperty("user.home") ?: "."
-        return homeDirStr.toPath() / "Downloads" / "FolderShare"
+    private val cachedDownloadDirectory: Path by lazy {
+        downloadDirectoryResolver.resolve()
     }
+
+    override fun getDefaultDownloadDirectory(): Path = cachedDownloadDirectory
 
     override fun getTemporaryDirectory(): Path {
         val tmpDir = System.getProperty("java.io.tmpdir") ?: "/tmp"
