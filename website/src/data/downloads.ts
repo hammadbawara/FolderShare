@@ -4,6 +4,7 @@ export const GITHUB_OWNER = "hammadbawara";
 export const GITHUB_REPO = "FolderShare";
 export const GITHUB_REPO_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`;
 export const GITHUB_RELEASES_URL = `${GITHUB_REPO_URL}/releases`;
+export const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.hz_apps.foldershare";
 
 /**
  * Workflow artifact naming patterns derived directly from:

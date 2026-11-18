@@ -1,6 +1,7 @@
 ---
 // src/pages/download.astro
 import Layout from '../layouts/Layout.astro';
+import GooglePlayBadge from '../components/GooglePlayBadge.astro';
 import { 
   GITHUB_RELEASES_URL, 
   ASSET_CONFIG, 
@@ -166,6 +167,15 @@ const platformData = {
             aria-labelledby={`pill-${key}`}
             hidden={key !== 'linux'}
           >
+            {key === 'android' && (
+              <div class="playstore-banner">
+                <div class="playstore-banner-info">
+                  <span class="playstore-banner-title">Google Play Store</span>
+                  <p class="playstore-banner-desc">Official release with automatic updates for Android phones, tablets &amp; Android TV.</p>
+                </div>
+                <GooglePlayBadge />
+              </div>
+            )}
             <div class="binaries-list">
               {data.binaries.map((binary) => (
                 <a 
@@ -355,6 +365,39 @@ const platformData = {
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  .playstore-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px 24px;
+    margin-bottom: 14px;
+    background: var(--md-sys-color-primary-container);
+    border: 1px solid rgba(0, 83, 219, 0.18);
+    border-radius: var(--radius-md);
+    flex-wrap: wrap;
+  }
+
+  .playstore-banner-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 220px;
+  }
+
+  .playstore-banner-title {
+    font-size: 1.12rem;
+    font-weight: 700;
+    color: var(--md-sys-color-on-primary-container);
+  }
+
+  .playstore-banner-desc {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
   }
 
   /* Binaries Cards */

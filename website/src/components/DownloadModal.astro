@@ -1,5 +1,6 @@
 ---
 // DownloadModal.astro
+import GooglePlayBadge from './GooglePlayBadge.astro';
 import { GITHUB_RELEASES_URL, fetchTargetRelease, generateDownloadUrls } from '../data/downloads';
 
 const targetRelease = await fetchTargetRelease();
@@ -75,6 +76,12 @@ const downloads = targetRelease?.downloads ?? generateDownloadUrls(currentTag);
     <!-- Android Panel -->
     <div class="platform-panel active" id="panel-android" role="tabpanel" aria-labelledby="tab-android">
       <div class="options-grid">
+        <div class="option-card">
+          <h4 class="option-title">Google Play Store</h4>
+          <p class="option-desc">Official release with automatic updates for Android phones, tablets, and Android TV.</p>
+          <GooglePlayBadge />
+        </div>
+
         <div class="option-card">
           <h4 class="option-title">Direct APK Download</h4>
           <p class="option-desc">Universal standalone package for Android phones, tablets, and Android TV.</p>

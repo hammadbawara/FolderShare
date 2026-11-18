@@ -1,0 +1,112 @@
+---
+// GooglePlayBadge.astro
+import { PLAY_STORE_URL } from '../data/downloads';
+
+interface Props {
+  href?: string;
+  class?: string;
+}
+
+const { href = PLAY_STORE_URL, class: className = '' } = Astro.props;
+---
+
+<a
+  href={href}
+  target="_blank"
+  rel="noopener noreferrer"
+  class={`google-play-badge ${className}`.trim()}
+  aria-label="Get Folder Share on Google Play"
+>
+  <svg
+    width="172"
+    height="52"
+    viewBox="0 0 180 54"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    role="img"
+    aria-hidden="true"
+  >
+    <rect x="0.75" y="0.75" width="178.5" height="52.5" rx="9.25" fill="#121316" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" />
+
+    <!-- Google Play 4-color triangle -->
+    <g transform="translate(14, 12)">
+      <!-- Blue left sector -->
+      <path
+        d="M1.1 1.0C0.7 1.4 0.5 2.0 0.5 2.8V27.2C0.5 28.0 0.7 28.6 1.1 29.0L1.2 29.1L15.4 15.0V14.8L1.2 0.9L1.1 1.0Z"
+        fill="#4285F4"
+      />
+      <!-- Green top sector -->
+      <path
+        d="M20.1 19.7L15.4 15.0V14.8L20.1 10.1L20.2 10.2L25.8 13.4C27.4 14.3 27.4 15.7 25.8 16.6L20.2 19.8L20.1 19.7Z"
+        fill="#FBBC04"
+      />
+      <!-- Red bottom sector -->
+      <path
+        d="M20.2 19.8L15.4 15.0L1.1 29.1C1.6 29.6 2.5 29.7 3.5 29.1L20.2 19.8Z"
+        fill="#EA4335"
+      />
+      <!-- Yellow right sector -->
+      <path
+        d="M20.2 10.2L3.5 0.9C2.5 0.3 1.6 0.4 1.1 0.9L15.4 15.0L20.2 10.2Z"
+        fill="#34A853"
+      />
+    </g>
+
+    <!-- Text -->
+    <text
+      x="51"
+      y="19"
+      fill="#E5E7EB"
+      font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+      font-size="8.5"
+      font-weight="600"
+      letter-spacing="0.08em"
+    >
+      GET IT ON
+    </text>
+    <text
+      x="50"
+      y="38.5"
+      fill="#FFFFFF"
+      font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+      font-size="18.5"
+      font-weight="700"
+      letter-spacing="-0.02em"
+    >
+      Google Play
+    </text>
+  </svg>
+</a>
+
+<style>
+  .google-play-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    text-decoration: none;
+    line-height: 0;
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal), filter var(--transition-fast);
+  }
+
+  .google-play-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    filter: brightness(1.06);
+  }
+
+  .google-play-badge:active {
+    transform: translateY(0);
+  }
+
+  .google-play-badge:focus-visible {
+    outline: 3px solid var(--md-sys-color-primary-container);
+    outline-offset: 2px;
+  }
+
+  .google-play-badge svg {
+    display: block;
+    height: auto;
+  }
+</style>

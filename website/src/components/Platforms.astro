@@ -1,5 +1,6 @@
 ---
 // Platforms.astro
+import GooglePlayBadge from './GooglePlayBadge.astro';
 import { GITHUB_RELEASES_URL, fetchTargetRelease, generateDownloadUrls } from '../data/downloads';
 
 const targetRelease = await fetchTargetRelease();
@@ -43,9 +44,7 @@ const downloads = targetRelease?.downloads ?? generateDownloadUrls(currentTag);
         </ul>
 
         <div class="platform-buttons-row">
-          <button type="button" class="btn btn-primary" data-open-download-modal data-platform-target="android">
-            Download Options
-          </button>
+          <GooglePlayBadge />
           <a href={downloads.apk} data-asset-id="apk" class="btn btn-ghost" title="Direct APK Download">
             Direct APK ↗
           </a>
@@ -76,9 +75,7 @@ const downloads = targetRelease?.downloads ?? generateDownloadUrls(currentTag);
         </ul>
 
         <div class="platform-buttons-row">
-          <button type="button" class="btn btn-primary" data-open-download-modal data-platform-target="android">
-            Download for TV
-          </button>
+          <GooglePlayBadge />
           <a href={downloads.apk} data-asset-id="apk" class="btn btn-ghost" title="Download Android TV APK">
             Direct APK ↗
           </a>
