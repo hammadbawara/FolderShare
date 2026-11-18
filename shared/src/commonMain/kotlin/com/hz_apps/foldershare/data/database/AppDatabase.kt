@@ -17,7 +17,7 @@ import kotlinx.coroutines.Dispatchers
         DeviceCredentialEntity::class,
         ClientPreferenceEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 @ConstructedBy(AppDatabaseConstructor::class)
@@ -40,13 +40,21 @@ private val MIGRATION_5_6 = object : Migration(5, 6) {
     }
 }
 
+private val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE `client_preference` ADD COLUMN `hasCompletedOnboarding` INTEGER NOT NULL DEFAULT 0"
+        )
+    }
+}
+
 fun getRoomDatabase(
     builder: RoomDatabase.Builder<AppDatabase>
 ): AppDatabase {
     return builder
         .setDriver(BundledSQLiteDriver())
         .setQueryCoroutineContext(Dispatchers.IO)
-        .addMigrations(MIGRATION_5_6)
+        .addMigrations(MIGRATION_5_6, MIGRATION_6_7)
         .fallbackToDestructiveMigration(dropAllTables = true)
         .build()
 }

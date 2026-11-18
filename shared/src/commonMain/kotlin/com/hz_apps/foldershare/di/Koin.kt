@@ -21,6 +21,7 @@ import com.hz_apps.foldershare.data.database.getRoomDatabase
 import com.hz_apps.foldershare.feature.devices.DeviceAuthViewModel
 import com.hz_apps.foldershare.feature.devices.DevicesViewModel
 import com.hz_apps.foldershare.feature.explorer.FileExplorerViewModel
+import com.hz_apps.foldershare.feature.onboarding.OnboardingViewModel
 import com.hz_apps.foldershare.feature.settings.SettingsViewModel
 import com.hz_apps.foldershare.feature.share.ShareViewModel
 import org.koin.core.KoinApplication
@@ -59,6 +60,7 @@ val viewModelModule = module {
     viewModel { FileExplorerViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { SettingsViewModel(get()) }
     viewModel { DeviceAuthViewModel(get(), get()) }
+    viewModel { OnboardingViewModel(get()) }
 }
 
 val appModule = listOf(coreModule, viewModelModule)

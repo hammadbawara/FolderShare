@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.Router
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -53,6 +54,7 @@ import com.hz_apps.foldershare.ui.components.tvFocusContainer
 fun SettingsScreen(
     viewModel: SettingsViewModel,
     onBackClick: () -> Unit,
+    onShowDownloadDevicesClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -287,6 +289,18 @@ fun SettingsScreen(
         HorizontalDivider(
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
             modifier = Modifier.padding(vertical = 12.dp)
+        )
+
+        SettingsItem(
+            title = "Get on Other Devices (TV, Phone, PC)",
+            subtitle = "Scan QR code or view download link for Android TV, Android Mobile, Windows & Linux",
+            icon = Icons.Default.QrCode2,
+            onClick = onShowDownloadDevicesClick
+        )
+
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+            modifier = Modifier.padding(vertical = 4.dp)
         )
 
         SettingsItem(

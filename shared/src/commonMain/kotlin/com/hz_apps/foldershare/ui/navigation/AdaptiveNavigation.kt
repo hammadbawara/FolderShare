@@ -15,8 +15,10 @@ import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
@@ -26,6 +28,9 @@ import com.hz_apps.foldershare.feature.devices.DevicesScreen
 import com.hz_apps.foldershare.feature.devices.DevicesViewModel
 import com.hz_apps.foldershare.feature.explorer.FileExplorerScreen
 import com.hz_apps.foldershare.feature.explorer.FileExplorerViewModel
+import com.hz_apps.foldershare.feature.onboarding.GetOnOtherDevicesDialog
+import com.hz_apps.foldershare.feature.onboarding.OnboardingScreen
+import com.hz_apps.foldershare.feature.onboarding.OnboardingViewModel
 import com.hz_apps.foldershare.feature.settings.SettingsScreen
 import com.hz_apps.foldershare.feature.settings.SettingsViewModel
 import com.hz_apps.foldershare.feature.share.ShareScreen
@@ -37,6 +42,9 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun FolderShareAppContent() {
     val isTv = remember { getPlatform().isTv }
+    val onboardingViewModel: OnboardingViewModel = koinViewModel()
+    val onboardingState by onboardingViewModel.uiState.collectAsStateWithLifecycle()
+
     val topLevelRoutes = remember(isTv) {
         if (isTv) {
             setOf(DevicesRoute)
@@ -49,6 +57,28 @@ fun FolderShareAppContent() {
         topLevelRoutes = topLevelRoutes
     )
     val navigator = remember(navState) { Navigator(navState) }
+
+    if (!onboardingState.isLoaded) {
+        return
+    }
+
+    if (onboardingState.showOnboarding) {
+        OnboardingScreen(
+            onFinishToDevices = {
+                onboardingViewModel.completeOnboarding()
+                navigator.activate(DevicesRoute)
+            },
+            onFinishToShare = {
+                onboardingViewModel.completeOnboarding()
+                if (!isTv) {
+                    navigator.activate(ShareRoute)
+                } else {
+                    navigator.activate(DevicesRoute)
+                }
+            }
+        )
+        return
+    }
 
     val currentRoute = navState.currentBackstack.lastOrNull()
     val topLevelRoute = navState.topLevelRoute
@@ -82,6 +112,7 @@ fun FolderShareAppContent() {
                     )
                 },
                 onNavigateToFileExplorer = navigateToFileExplorer,
+                onGetOnOtherDevicesClick = { onboardingViewModel.openDownloadDialog() },
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -97,6 +128,7 @@ fun FolderShareAppContent() {
             SettingsScreen(
                 viewModel = viewModel,
                 onBackClick = { navigator.goBack() },
+                onShowDownloadDevicesClick = { onboardingViewModel.openDownloadDialog() },
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -196,6 +228,12 @@ fun FolderShareAppContent() {
             modifier = Modifier.fillMaxSize(),
             transitionSpec = { defaultTransitionSpec },
             popTransitionSpec = { defaultPopTransitionSpec }
+        )
+    }
+
+    if (onboardingState.isDownloadDialogOpen) {
+        GetOnOtherDevicesDialog(
+            onDismiss = { onboardingViewModel.closeDownloadDialog() }
         )
     }
 }

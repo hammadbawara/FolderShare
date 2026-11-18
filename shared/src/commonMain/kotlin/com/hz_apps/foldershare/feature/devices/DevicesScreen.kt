@@ -25,9 +25,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lan
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.WifiTethering
 import androidx.compose.material.icons.filled.WifiTetheringOff
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -54,12 +57,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hz_apps.foldershare.core.explorer.model.RemoteTargetDevice
+import com.hz_apps.foldershare.core.util.AppLinks
 import com.hz_apps.foldershare.feature.devices.components.ConnectingDialog
 import com.hz_apps.foldershare.feature.devices.components.ConnectionErrorDialog
 import com.hz_apps.foldershare.feature.devices.components.DeviceAuthDialog
 import com.hz_apps.foldershare.feature.devices.components.DeviceItemRow
 import com.hz_apps.foldershare.feature.devices.components.DiscoveryAnimation
 import com.hz_apps.foldershare.feature.devices.components.ManualIpDialog
+import com.hz_apps.foldershare.getPlatform
+import com.hz_apps.foldershare.ui.components.QrCodeBox
 import com.hz_apps.foldershare.ui.components.VerticalScrollbar
 import com.hz_apps.foldershare.ui.components.rememberRetainedFocusState
 import com.hz_apps.foldershare.ui.components.rememberScrollbarAdapter
@@ -72,9 +78,11 @@ fun DevicesScreen(
     viewModel: DevicesViewModel,
     onDeviceClick: (DeviceItem) -> Unit = {},
     onNavigateToFileExplorer: (RemoteTargetDevice, String?, String?) -> Unit = { _, _, _ -> },
+    onGetOnOtherDevicesClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isTv = remember { getPlatform().isTv }
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
     val retainedFocusState = rememberRetainedFocusState()
@@ -123,6 +131,15 @@ fun DevicesScreen(
                         Icon(
                             imageVector = Icons.Default.Lan,
                             contentDescription = "Connect manually"
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onGetOnOtherDevicesClick
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.QrCode2,
+                            contentDescription = "Get Folder Share on other devices"
                         )
                     }
                 }
@@ -182,22 +199,42 @@ fun DevicesScreen(
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text(
-                                            text = "Make sure the other device has Folder Share open and is connected to the same Wi-Fi network.",
+                                            text = if (isTv) {
+                                                "Make sure your Android Phone, Windows PC, or Linux computer has Folder Share open with Sharing turned On, and is connected to the same Wi-Fi network."
+                                            } else {
+                                                "Make sure the other device has Folder Share open and is connected to the same Wi-Fi network."
+                                            },
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             textAlign = TextAlign.Center
                                         )
                                         Spacer(modifier = Modifier.height(20.dp))
-                                        OutlinedButton(
-                                            onClick = { viewModel.showManualIpDialog() }
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Lan,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text("Connect manually")
+                                            OutlinedButton(
+                                                onClick = { viewModel.showManualIpDialog() }
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Lan,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text("Connect manually")
+                                            }
+                                            FilledTonalButton(
+                                                onClick = onGetOnOtherDevicesClick
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.QrCode2,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text("Get on Other Devices")
+                                            }
                                         }
                                     } else {
                                         Text(
@@ -239,6 +276,11 @@ fun DevicesScreen(
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Text("Connect manually")
                                         }
+                                    }
+
+                                    if (isTv) {
+                                        Spacer(modifier = Modifier.height(24.dp))
+                                        TvCrossDeviceSetupCard()
                                     }
                                 }
                             }
@@ -413,6 +455,114 @@ private fun ScanControlChip(
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Medium
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TvCrossDeviceSetupCard() {
+    Card(
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.QrCode2,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Need Folder Share on Your Phone or PC?",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = "Sharing folders is not supported from Android TV. Install Folder Share on your Android Phone, Windows PC, or Linux computer to share folders to this TV:",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    QrCodeBox(
+                        data = AppLinks.DOWNLOAD_URL,
+                        size = 136.dp,
+                        quietZonePadding = 10.dp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Scan on Android Phone",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = "Android Mobile & Tablet",
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Scan the QR code with your phone camera to download.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = "Windows & Linux PC",
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Open ${AppLinks.DOWNLOAD_DISPLAY_URL} in any web browser.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
         }
