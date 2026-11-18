@@ -45,7 +45,16 @@ private class UploadProgressChannelContent(
     override val contentLength: Long? get() = localFileSource.size.takeIf { it > 0 }?.minus(startByte)?.coerceAtLeast(0L)
 
     override suspend fun writeTo(channel: ByteWriteChannel) {
-        val inputStream = localFileSource.openStream()
+        val inputStream = try {
+            localFileSource.openStream()
+        } catch (e: Exception) {
+            logger.d(e) { "Failed to open local file stream for upload: ${localFileSource.name}" }
+            throw WebDavException.StorageError(
+                isOutOfSpace = false,
+                message = "Could not open '${localFileSource.name}' for upload",
+                cause = e
+            )
+        }
         val buffer = ByteArray(64 * 1024)
         var totalUploaded = startByte
         val totalSize = localFileSource.size.takeIf { it > 0 }
@@ -55,9 +64,27 @@ private class UploadProgressChannelContent(
                 var skipped = 0L
                 while (skipped < startByte) {
                     val toSkip = startByte - skipped
-                    val actualSkipped = stream.skip(toSkip)
+                    val actualSkipped = try {
+                        stream.skip(toSkip)
+                    } catch (e: Exception) {
+                        logger.d(e) { "Failed to seek local file for upload: ${localFileSource.name}" }
+                        throw WebDavException.StorageError(
+                            isOutOfSpace = false,
+                            message = "Could not read '${localFileSource.name}'",
+                            cause = e
+                        )
+                    }
                     if (actualSkipped <= 0) {
-                        val r = stream.read(buffer, 0, minOf(buffer.size.toLong(), toSkip).toInt())
+                        val r = try {
+                            stream.read(buffer, 0, minOf(buffer.size.toLong(), toSkip).toInt())
+                        } catch (e: Exception) {
+                            logger.d(e) { "Failed to read local file during seek: ${localFileSource.name}" }
+                            throw WebDavException.StorageError(
+                                isOutOfSpace = false,
+                                message = "Could not read '${localFileSource.name}'",
+                                cause = e
+                            )
+                        }
                         if (r <= 0) break
                         skipped += r
                     } else {
@@ -69,7 +96,16 @@ private class UploadProgressChannelContent(
             onProgress?.invoke(totalUploaded, totalSize)
 
             while (true) {
-                val read = stream.read(buffer)
+                val read = try {
+                    stream.read(buffer)
+                } catch (e: Exception) {
+                    logger.d(e) { "Failed to read local file during upload: ${localFileSource.name}" }
+                    throw WebDavException.StorageError(
+                        isOutOfSpace = false,
+                        message = "Could not read '${localFileSource.name}'",
+                        cause = e
+                    )
+                }
                 if (read <= 0) break
                 channel.writeFully(buffer, 0, read)
                 channel.flush()
@@ -96,23 +132,81 @@ class KtorWebDavClient(
         }
     }
 
-    private suspend fun handleResponseStatus(response: HttpResponse, targetUrl: String) {
+    private fun extractPlainServerReason(body: String): String? {
+        val trimmed = body.trim()
+        if (trimmed.isEmpty()) return null
+        if (trimmed.startsWith("<", ignoreCase = true)) return null
+        return trimmed.lineSequence().firstOrNull()?.trim()?.take(160)?.ifEmpty { null }
+    }
+
+    private fun isOutOfSpaceThrowable(e: Throwable): Boolean {
+        var current: Throwable? = e
+        var depth = 0
+        while (current != null && depth < 10) {
+            val msg = current.message.orEmpty()
+            if (msg.contains("No space left on device", ignoreCase = true) ||
+                msg.contains("ENOSPC", ignoreCase = true) ||
+                msg.contains("disk full", ignoreCase = true)
+            ) {
+                return true
+            }
+            current = current.cause
+            depth++
+        }
+        return false
+    }
+
+    private inline fun <T> runLocalStorageIo(actionDescription: String, block: () -> T): T {
+        return try {
+            block()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: WebDavException) {
+            throw e
+        } catch (e: Exception) {
+            val outOfSpace = isOutOfSpaceThrowable(e)
+            logger.d(e) { "Local storage error during $actionDescription" }
+            throw WebDavException.StorageError(isOutOfSpace = outOfSpace, cause = e)
+        }
+    }
+
+    private suspend fun handleResponseStatus(
+        response: HttpResponse,
+        targetUrl: String,
+        isReadOperation: Boolean = false,
+        logError: Boolean = true
+    ) {
         val status = response.status.value
         if (response.status.isSuccess() || status == 207 || status == 201 || status == 204) {
             return
         }
 
         val body = try { response.bodyAsText() } catch (_: Exception) { "" }
-        logger.w { "[HTTP $status] $targetUrl | Response: ${body.take(200)}" }
+        if (logError) {
+            logger.d { "[HTTP $status] $targetUrl | Response: ${body.take(200)}" }
+        }
+        val serverReason = extractPlainServerReason(body)
 
         val exception = when (status) {
             401 -> WebDavException.Unauthorized()
-            403 -> WebDavException.PermissionDenied(targetUrl)
-            404 -> WebDavException.NotFound(targetUrl)
-            405 -> WebDavException.MethodNotAllowed("Method not allowed for $targetUrl")
+            403 -> WebDavException.PermissionDenied(
+                path = targetUrl,
+                isReadOperation = isReadOperation,
+                serverReason = serverReason
+            )
+            404 -> WebDavException.NotFound(path = targetUrl)
+            405 -> WebDavException.MethodNotAllowed(
+                serverReason = serverReason,
+                message = when {
+                    serverReason?.contains("already exists", ignoreCase = true) == true ->
+                        "A file or folder with that name already exists"
+                    serverReason != null -> serverReason
+                    else -> "This action is not allowed here"
+                }
+            )
             409 -> WebDavException.Conflict()
-            in 500..599 -> WebDavException.ServerError(status)
-            else -> WebDavException.Unknown(status)
+            in 500..599 -> WebDavException.ServerError(status, serverReason = serverReason)
+            else -> WebDavException.Unknown(status, serverReason = serverReason)
         }
         throw exception
     }
@@ -121,16 +215,84 @@ class KtorWebDavClient(
         if (e is CancellationException) throw e
         if (e is WebDavException) return e
 
-        logger.e(e) { "Exception accessing $targetUrl: ${e.message}" }
+        logger.d(e) { "WebDAV request failed for $targetUrl: ${e.message}" }
 
-        return when {
-            e is HttpRequestTimeoutException || e.message?.contains("Timeout", ignoreCase = true) == true -> {
-                WebDavException.Timeout("Request timed out while reaching $targetUrl", e)
-            }
-            else -> {
-                WebDavException.NetworkError("Network error accessing $targetUrl: ${e.message ?: "Connection failed"}", e)
-            }
+        if (isOutOfSpaceThrowable(e)) {
+            return WebDavException.StorageError(isOutOfSpace = true, cause = e)
         }
+
+        var current: Throwable? = e
+        var depth = 0
+        while (current != null && depth < 10) {
+            val simpleName = current::class.simpleName.orEmpty()
+            val msg = current.message.orEmpty()
+            when {
+                current is HttpRequestTimeoutException ||
+                    simpleName.contains("SocketTimeout", ignoreCase = true) ||
+                    simpleName.contains("ConnectTimeout", ignoreCase = true) ||
+                    msg.contains("timed out", ignoreCase = true) ||
+                    msg.contains("timeout", ignoreCase = true) -> {
+                    return WebDavException.Timeout(cause = e)
+                }
+                simpleName.contains("UnknownHost", ignoreCase = true) ||
+                    msg.contains("Unable to resolve host", ignoreCase = true) ||
+                    msg.contains("No address associated", ignoreCase = true) -> {
+                    return WebDavException.NetworkError(
+                        message = "Device could not be found on your network. Check your Wi-Fi connection.",
+                        cause = e
+                    )
+                }
+                simpleName.contains("ConnectException", ignoreCase = true) ||
+                    msg.contains("ECONNREFUSED", ignoreCase = true) ||
+                    msg.contains("Connection refused", ignoreCase = true) -> {
+                    return WebDavException.NetworkError(
+                        message = "Connection refused. Make sure Folder Share is running on the device.",
+                        cause = e
+                    )
+                }
+                simpleName.contains("NoRouteToHost", ignoreCase = true) ||
+                    msg.contains("No route to host", ignoreCase = true) ||
+                    msg.contains("Network is unreachable", ignoreCase = true) ||
+                    msg.contains("ENETUNREACH", ignoreCase = true) ||
+                    msg.contains("EHOSTUNREACH", ignoreCase = true) -> {
+                    return WebDavException.NetworkError(
+                        message = "Device is unreachable. Check that both devices are on the same Wi-Fi or Hotspot.",
+                        cause = e
+                    )
+                }
+                msg.contains("Cleartext HTTP traffic", ignoreCase = true) -> {
+                    return WebDavException.NetworkError(
+                        message = "Local HTTP connection was blocked by the system.",
+                        cause = e
+                    )
+                }
+                simpleName.contains("SSL", ignoreCase = true) ||
+                    simpleName.contains("Certificate", ignoreCase = true) ||
+                    msg.contains("Trust anchor", ignoreCase = true) -> {
+                    return WebDavException.NetworkError(
+                        message = "Secure connection to the device failed.",
+                        cause = e
+                    )
+                }
+                simpleName.contains("SocketException", ignoreCase = true) ||
+                    simpleName.contains("EOFException", ignoreCase = true) ||
+                    simpleName.contains("StreamResetException", ignoreCase = true) ||
+                    msg.contains("Connection reset", ignoreCase = true) ||
+                    msg.contains("Broken pipe", ignoreCase = true) ||
+                    msg.contains("Software caused connection abort", ignoreCase = true) ||
+                    msg.contains("unexpected end of stream", ignoreCase = true) ||
+                    msg.contains("Socket closed", ignoreCase = true) -> {
+                    return WebDavException.NetworkError(
+                        message = "Connection to the device was lost.",
+                        cause = e
+                    )
+                }
+            }
+            current = current.cause
+            depth++
+        }
+
+        return WebDavException.NetworkError(cause = e)
     }
 
     override suspend fun propfind(
@@ -145,7 +307,7 @@ class KtorWebDavClient(
                 header("Depth", depth)
                 addAuthHeader(username, password)
             }
-            handleResponseStatus(response, targetUrl)
+            handleResponseStatus(response, targetUrl, isReadOperation = true)
             response.bodyAsText()
         } catch (e: Exception) {
             throw handleException(e, targetUrl)
@@ -200,17 +362,22 @@ class KtorWebDavClient(
             val parentUrl = currentTargetUrl.substringBeforeLast('/')
             if (parentUrl.isNotEmpty()) {
                 try {
-                    val parentHeadHeaders = head(parentUrl, username, password)
+                    val parentHeadHeaders = headInternal(parentUrl, username, password, logError = false)
                     val writeAllowedHeader = parentHeadHeaders.entries.firstOrNull { it.key.equals("x-write-allowed", ignoreCase = true) }?.value?.firstOrNull()
                     if (writeAllowedHeader.equals("false", ignoreCase = true)) {
+                        logger.d { "Pre-flight upload check: write access disabled on $parentUrl" }
                         throw WebDavException.PermissionDenied(parentUrl)
                     }
                     val allowHeader = parentHeadHeaders.entries.firstOrNull { it.key.equals("allow", ignoreCase = true) }?.value?.firstOrNull()
                     if (allowHeader != null && !allowHeader.contains("PUT", ignoreCase = true) && !allowHeader.contains("MKCOL", ignoreCase = true)) {
+                        logger.d { "Pre-flight upload check: PUT/MKCOL disallowed on $parentUrl ($allowHeader)" }
                         throw WebDavException.PermissionDenied(parentUrl)
                     }
                 } catch (e: WebDavException) {
-                    throw e
+                    if (e is WebDavException.PermissionDenied || e is WebDavException.Unauthorized) {
+                        throw e
+                    }
+                    // Ignore non-permission probe errors (e.g., 404/405 on non-standard servers)
                 } catch (_: Exception) {
                     // Fallback if parent HEAD is not supported
                 }
@@ -219,16 +386,19 @@ class KtorWebDavClient(
             // Check resume start byte if file exists on remote
             var resumeStartByte = 0L
             try {
-                val headHeaders = head(currentTargetUrl, username, password)
+                val headHeaders = headInternal(currentTargetUrl, username, password, logError = false)
                 val contentLengthStr = headHeaders.entries.firstOrNull { it.key.equals(HttpHeaders.ContentLength, ignoreCase = true) }?.value?.firstOrNull()
                 val existingLength = contentLengthStr?.toLongOrNull() ?: 0L
                 if (existingLength > 0 && existingLength < localFileSource.size) {
                     resumeStartByte = existingLength
                 }
             } catch (e: WebDavException) {
-                if (e is WebDavException.PermissionDenied) throw e
+                if (e is WebDavException.PermissionDenied) {
+                    logger.d { "Resume HEAD check denied write permission on $currentTargetUrl" }
+                    throw e
+                }
             } catch (_: Exception) {
-                // If HEAD fails or gives non-permission error (e.g. 404), proceed normally
+                // If HEAD fails or gives non-permission error (e.g. 404 for new file), proceed normally
             }
 
             val bodyContent = UploadProgressChannelContent(localFileSource, resumeStartByte, onProgress)
@@ -245,7 +415,6 @@ class KtorWebDavClient(
             handleResponseStatus(response, currentTargetUrl)
             logger.d { "Upload to $currentTargetUrl completed successfully" }
         } catch (e: Exception) {
-            logger.e(e) { "Upload to $currentTargetUrl failed" }
             throw handleException(e, currentTargetUrl)
         }
     }
@@ -281,16 +450,18 @@ class KtorWebDavClient(
         onProgress: ((bytesDownloaded: Long, totalBytes: Long?) -> Unit)?,
         activeUrlProvider: (() -> String)?
     ): String {
+        var currentTargetUrl = activeUrlProvider?.invoke() ?: targetUrl
         try {
             val parentDir = destinationPath.parent
             if (parentDir != null && !fileSystem.exists(parentDir)) {
-                fileSystem.createDirectories(parentDir)
+                runLocalStorageIo("creating download directory $parentDir") {
+                    fileSystem.createDirectories(parentDir)
+                }
             }
 
             val partPath = destinationPath.parent?.let { it / "${destinationPath.name}.part" }
                 ?: "${destinationPath}.part".toPath()
 
-            var currentTargetUrl = activeUrlProvider?.invoke() ?: targetUrl
             logger.d { "Starting download from $currentTargetUrl (partPath=$partPath)" }
 
             while (true) {
@@ -323,14 +494,16 @@ class KtorWebDavClient(
                         val serverLength = contentRange?.substringAfter("/", "")?.trim()?.toLongOrNull()
                         if (serverLength != null && currentPartSize == serverLength && currentPartSize > 0) {
                             logger.d { "File already fully downloaded: $currentTargetUrl" }
-                            safeMove(partPath, destinationPath)
+                            runLocalStorageIo("moving completed download to $destinationPath") {
+                                safeMove(partPath, destinationPath)
+                            }
                             onProgress?.invoke(currentPartSize, serverLength)
                             streamCompleted = true
                         }
                         return@execute
                     }
 
-                    handleResponseStatus(response, currentTargetUrl)
+                    handleResponseStatus(response, currentTargetUrl, isReadOperation = true)
 
                     val isPartial = response.status.value == 206
                     val responseLength = response.contentLength()?.takeIf { it > 0 }
@@ -341,7 +514,9 @@ class KtorWebDavClient(
                     var bytesDownloaded = if (isPartial) currentPartSize else 0L
 
                     val append = isPartial && currentPartSize > 0
-                    val sink = if (append) fileSystem.appendingSink(partPath) else fileSystem.sink(partPath)
+                    val sink = runLocalStorageIo("opening download sink $partPath") {
+                        if (append) fileSystem.appendingSink(partPath) else fileSystem.sink(partPath)
+                    }
                     sink.buffer().use { bufferedSink ->
                         while (!channel.isClosedForRead) {
                             currentCoroutineContext().ensureActive()
@@ -352,24 +527,35 @@ class KtorWebDavClient(
                                 logger.d { "Active link changed mid-download from $currentTargetUrl to $latestUrl. Migrating stream..." }
                                 currentTargetUrl = latestUrl
                                 connectionSwitched = true
-                                bufferedSink.flush()
+                                runLocalStorageIo("flushing partial download $partPath") {
+                                    bufferedSink.flush()
+                                }
                                 break
                             }
 
                             val read = withTimeoutOrNull(5.seconds) {
                                 channel.readAvailable(buffer, 0, buffer.size)
-                            } ?: throw WebDavException.Timeout("Transfer stalled: target device disconnected")
+                            } ?: run {
+                                logger.d { "Download stalled (no data for 5s) from $currentTargetUrl" }
+                                throw WebDavException.Timeout("Transfer stalled because the device stopped responding")
+                            }
 
                             if (read <= 0) break
-                            bufferedSink.write(buffer, 0, read)
+                            runLocalStorageIo("writing downloaded chunk to $partPath") {
+                                bufferedSink.write(buffer, 0, read)
+                            }
                             bytesDownloaded += read
                             onProgress?.invoke(bytesDownloaded, totalBytes)
                         }
-                        bufferedSink.flush()
+                        runLocalStorageIo("flushing download file $partPath") {
+                            bufferedSink.flush()
+                        }
                     }
 
                     if (!connectionSwitched) {
-                        safeMove(partPath, destinationPath)
+                        runLocalStorageIo("moving completed download to $destinationPath") {
+                            safeMove(partPath, destinationPath)
+                        }
                         logger.d { "Download from $currentTargetUrl completed successfully (isPartial=$isPartial)" }
                         onProgress?.invoke(totalBytes ?: bytesDownloaded, totalBytes ?: bytesDownloaded)
                         streamCompleted = true
@@ -396,8 +582,7 @@ class KtorWebDavClient(
 
             return destinationPath.toString()
         } catch (e: Exception) {
-            logger.e(e) { "Download failed from $targetUrl: ${e.message}" }
-            throw handleException(e, targetUrl)
+            throw handleException(e, currentTargetUrl)
         }
     }
 
@@ -435,22 +620,34 @@ class KtorWebDavClient(
         }
     }
 
-    override suspend fun head(
+    private suspend fun headInternal(
         targetUrl: String,
         username: String?,
-        password: String?
+        password: String?,
+        logError: Boolean
     ): Map<String, List<String>> {
         return try {
             val response = client.request(targetUrl) {
                 method = HttpMethod.Head
                 addAuthHeader(username, password)
             }
-            handleResponseStatus(response, targetUrl)
+            handleResponseStatus(response, targetUrl, isReadOperation = true, logError = logError)
             response.headers.entries().associate { it.key to it.value }
         } catch (e: Exception) {
-            throw handleException(e, targetUrl)
+            if (logError) {
+                throw handleException(e, targetUrl)
+            }
+            if (e is CancellationException) throw e
+            if (e is WebDavException) throw e
+            throw WebDavException.NetworkError(cause = e)
         }
     }
+
+    override suspend fun head(
+        targetUrl: String,
+        username: String?,
+        password: String?
+    ): Map<String, List<String>> = headInternal(targetUrl, username, password, logError = true)
 
     override suspend fun probeDeviceUuid(targetUrl: String): String? {
         return try {

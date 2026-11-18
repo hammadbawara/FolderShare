@@ -1,6 +1,7 @@
 package com.hz_apps.foldershare.core.discovery
 
 import com.hz_apps.foldershare.core.explorer.model.RemoteTargetDevice
+import com.hz_apps.foldershare.core.explorer.model.WebDavException
 import com.hz_apps.foldershare.core.explorer.repository.RemoteFileRepository
 import com.hz_apps.foldershare.core.server.ServerConstants
 import com.hz_apps.foldershare.data.database.DeviceCredentialDao
@@ -96,8 +97,7 @@ class DefaultDeviceConnector(
                     isAuthRequired = false
                 } else {
                     val err = testResult.exceptionOrNull()
-                    val errMsg = err?.message.orEmpty()
-                    val isAuth = isAuthError(errMsg)
+                    val isAuth = isAuthError(err)
                     if (isAuth) {
                         isAuthRequired = true
                     } else {
@@ -130,8 +130,7 @@ class DefaultDeviceConnector(
                 break
             } else {
                 val err = testResult.exceptionOrNull()
-                val errMsg = err?.message.orEmpty()
-                val isAuth = isAuthError(errMsg)
+                val isAuth = isAuthError(err)
                 if (isAuth) {
                     workingPort = candidate.port
                     workingIsHttps = candidate.isHttps
@@ -268,8 +267,7 @@ class DefaultDeviceConnector(
                 DeviceConnectionResult.Success(targetDevice, null, null)
             } else {
                 val error = testResult.exceptionOrNull()
-                val errMsg = error?.message.orEmpty()
-                if (isAuthError(errMsg)) {
+                if (isAuthError(error)) {
                     DeviceConnectionResult.NeedsAuthentication(targetDeviceItem, isSavedCredentialInvalid = false)
                 } else {
                     val readableMsg = formatConnectionErrorMessage(device.name, device.hostAddress, device.port, error)
@@ -287,8 +285,7 @@ class DefaultDeviceConnector(
                     DeviceConnectionResult.Success(targetDevice, savedCredential.username, savedCredential.password)
                 } else {
                     val error = testResult.exceptionOrNull()
-                    val errMsg = error?.message.orEmpty()
-                    if (isAuthError(errMsg)) {
+                    if (isAuthError(error)) {
                         DeviceConnectionResult.NeedsAuthentication(targetDeviceItem, isSavedCredentialInvalid = true)
                     } else {
                         val readableMsg = formatConnectionErrorMessage(device.name, device.hostAddress, device.port, error)
@@ -325,7 +322,9 @@ class DefaultDeviceConnector(
         }
     }
 
-    private fun isAuthError(message: String): Boolean {
+    private fun isAuthError(error: Throwable?): Boolean {
+        if (error is WebDavException.Unauthorized) return true
+        val message = error?.message.orEmpty()
         return message.contains("401") ||
                 message.contains("Unauthorized", ignoreCase = true) ||
                 message.contains("auth", ignoreCase = true)

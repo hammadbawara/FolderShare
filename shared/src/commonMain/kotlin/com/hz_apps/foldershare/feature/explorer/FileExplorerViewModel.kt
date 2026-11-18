@@ -43,6 +43,7 @@ data class FileExplorerUiState(
     val transferProgress: FileTransferProgress? = null,
     val errorMessage: String? = null,
     val userMessage: String? = null,
+    val isUserMessageError: Boolean = false,
     val sortOption: FileSortOption = FileSortOption(),
     val selectedFileForProperties: RemoteFile? = null,
     val propertiesDownloadUrl: String? = null,
@@ -167,7 +168,7 @@ class FileExplorerViewModel(
                             rawFiles = emptyList(),
                             files = emptyList(),
                             isLoading = false,
-                            errorMessage = error.message ?: "Failed to connect to device"
+                            errorMessage = error.message ?: "Could not connect to device"
                         ) 
                     }
                 }
@@ -205,7 +206,7 @@ class FileExplorerViewModel(
         val target = _uiState.value.device ?: return
         val trimmedName = folderName.trim()
         if (trimmedName.isBlank()) {
-            _uiState.update { it.copy(userMessage = "Folder name cannot be empty") }
+            _uiState.update { it.copy(userMessage = "Please enter a folder name.", isUserMessageError = true) }
             return
         }
 
@@ -221,11 +222,23 @@ class FileExplorerViewModel(
 
             result.fold(
                 onSuccess = {
-                    _uiState.update { it.copy(isActionLoading = false, userMessage = "Folder '$trimmedName' created") }
+                    _uiState.update {
+                        it.copy(
+                            isActionLoading = false,
+                            userMessage = "Folder '$trimmedName' created",
+                            isUserMessageError = false
+                        )
+                    }
                     refresh()
                 },
                 onFailure = { error ->
-                    _uiState.update { it.copy(isActionLoading = false, userMessage = error.message ?: "Failed to create folder") }
+                    _uiState.update {
+                        it.copy(
+                            isActionLoading = false,
+                            userMessage = error.message ?: "Failed to create folder",
+                            isUserMessageError = true
+                        )
+                    }
                 }
             )
         }
@@ -235,7 +248,7 @@ class FileExplorerViewModel(
         val target = _uiState.value.device ?: return
         val trimmedName = fileName.trim()
         if (trimmedName.isBlank()) {
-            _uiState.update { it.copy(userMessage = "File name cannot be empty") }
+            _uiState.update { it.copy(userMessage = "Please enter a file name.", isUserMessageError = true) }
             return
         }
 
@@ -252,11 +265,23 @@ class FileExplorerViewModel(
 
             result.fold(
                 onSuccess = {
-                    _uiState.update { it.copy(isActionLoading = false, userMessage = "File '$trimmedName' created") }
+                    _uiState.update {
+                        it.copy(
+                            isActionLoading = false,
+                            userMessage = "File '$trimmedName' created",
+                            isUserMessageError = false
+                        )
+                    }
                     refresh()
                 },
                 onFailure = { error ->
-                    _uiState.update { it.copy(isActionLoading = false, userMessage = error.message ?: "Failed to create file") }
+                    _uiState.update {
+                        it.copy(
+                            isActionLoading = false,
+                            userMessage = error.message ?: "Failed to create file",
+                            isUserMessageError = true
+                        )
+                    }
                 }
             )
         }
@@ -275,11 +300,23 @@ class FileExplorerViewModel(
 
             result.fold(
                 onSuccess = {
-                    _uiState.update { it.copy(isActionLoading = false, userMessage = "'${file.name}' deleted") }
+                    _uiState.update {
+                        it.copy(
+                            isActionLoading = false,
+                            userMessage = "'${file.name}' deleted",
+                            isUserMessageError = false
+                        )
+                    }
                     refresh()
                 },
                 onFailure = { error ->
-                    _uiState.update { it.copy(isActionLoading = false, userMessage = error.message ?: "Failed to delete file") }
+                    _uiState.update {
+                        it.copy(
+                            isActionLoading = false,
+                            userMessage = error.message ?: "Failed to delete '${file.name}'",
+                            isUserMessageError = true
+                        )
+                    }
                 }
             )
         }
@@ -305,11 +342,23 @@ class FileExplorerViewModel(
 
             result.fold(
                 onSuccess = {
-                    _uiState.update { it.copy(isActionLoading = false, userMessage = "Renamed to '$trimmedName'") }
+                    _uiState.update {
+                        it.copy(
+                            isActionLoading = false,
+                            userMessage = "Renamed to '$trimmedName'",
+                            isUserMessageError = false
+                        )
+                    }
                     refresh()
                 },
                 onFailure = { error ->
-                    _uiState.update { it.copy(isActionLoading = false, userMessage = error.message ?: "Failed to rename resource") }
+                    _uiState.update {
+                        it.copy(
+                            isActionLoading = false,
+                            userMessage = error.message ?: "Failed to rename '${file.name}'",
+                            isUserMessageError = true
+                        )
+                    }
                 }
             )
         }
@@ -324,7 +373,7 @@ class FileExplorerViewModel(
             onSuccess = { savedPath ->
                 _uiState.update {
                     val filename = if (file.name.length < 20) file.name else file.name.slice(IntRange(0, 20)) + "..."
-                    it.copy(userMessage = "✓ $filename saved to $savedPath successfully")
+                    it.copy(userMessage = "✓ $filename saved to $savedPath successfully", isUserMessageError = false)
                 }
             }
         )
@@ -335,17 +384,10 @@ class FileExplorerViewModel(
         val state = _uiState.value
         val device = state.device ?: return
         if (!state.isCurrentFolderWriteAllowed) {
-            val permDeniedMsg = "Write access is disabled for this folder"
             _uiState.update { currentState ->
                 currentState.copy(
-                    transferProgress = FileTransferProgress(
-                        fileName = localFileSources.firstOrNull()?.name ?: "",
-                        direction = TransferDirection.UPLOAD,
-                        status = TransferStatus.PAUSED_ERROR,
-                        errorMessage = permDeniedMsg,
-                        isAutoRetrying = false
-                    ),
-                    userMessage = permDeniedMsg
+                    userMessage = "This folder is read-only. You can't upload files here.",
+                    isUserMessageError = true
                 )
             }
             return
@@ -361,7 +403,7 @@ class FileExplorerViewModel(
                 } else {
                     "Uploaded $count files"
                 }
-                _uiState.update { it.copy(userMessage = msg) }
+                _uiState.update { it.copy(userMessage = msg, isUserMessageError = false) }
                 refresh()
             }
         )
@@ -375,7 +417,7 @@ class FileExplorerViewModel(
         val direction = _uiState.value.transferProgress?.direction
         fileTransferManager.cancelTransfer()
         val cancelMsg = if (direction == TransferDirection.UPLOAD) "Upload cancelled" else "Save cancelled"
-        _uiState.update { it.copy(userMessage = cancelMsg) }
+        _uiState.update { it.copy(userMessage = cancelMsg, isUserMessageError = false) }
     }
 
     fun cancelSaveToDevice() = cancelTransfer()
@@ -407,6 +449,15 @@ class FileExplorerViewModel(
         }
         viewModelScope.launch {
             val rawUrl = repository.getDownloadUrl(deviceId = device.id, path = file.path, fallbackDevice = device)
+            if (rawUrl.isBlank()) {
+                _uiState.update {
+                    it.copy(
+                        userMessage = "Couldn't reach ${device.name}. Try refreshing the folder.",
+                        isUserMessageError = true
+                    )
+                }
+                return@launch
+            }
             val mimeType = PathUtils.getMimeType(file.extension)
             val streamableUrl = streamProxyController?.getStreamableUrl(
                 downloadUrl = rawUrl,
@@ -446,7 +497,7 @@ class FileExplorerViewModel(
                     mimeType = mimeType,
                     title = file.name
                 )
-                _uiState.update { it.copy(userMessage = "Opened '${file.name}'") }
+                _uiState.update { it.copy(userMessage = "Opened '${file.name}'", isUserMessageError = false) }
             }
         )
     }
@@ -459,8 +510,17 @@ class FileExplorerViewModel(
         val device = _uiState.value.device ?: return
         viewModelScope.launch {
             val url = repository.getDownloadUrl(deviceId = device.id, path = file.path, fallbackDevice = device)
+            if (url.isBlank()) {
+                _uiState.update {
+                    it.copy(
+                        userMessage = "Couldn't reach ${device.name}. Try refreshing the folder.",
+                        isUserMessageError = true
+                    )
+                }
+                return@launch
+            }
             platformFileHandler.shareFile(url, file.name)
-            _uiState.update { it.copy(userMessage = "Share link copied / dispatched") }
+            _uiState.update { it.copy(userMessage = "Share link copied / dispatched", isUserMessageError = false) }
         }
     }
 
@@ -471,7 +531,7 @@ class FileExplorerViewModel(
 
     fun copyToClipboard(text: String) {
         platformFileHandler.copyToClipboard(text)
-        _uiState.update { it.copy(userMessage = "Link copied to clipboard") }
+        _uiState.update { it.copy(userMessage = "Link copied to clipboard", isUserMessageError = false) }
     }
 
     // --- Dialog Visibility Triggers ---
@@ -525,7 +585,7 @@ class FileExplorerViewModel(
     }
 
     fun clearUserMessage() {
-        _uiState.update { it.copy(userMessage = null) }
+        _uiState.update { it.copy(userMessage = null, isUserMessageError = false) }
     }
 
     // --- Helper Logic ---

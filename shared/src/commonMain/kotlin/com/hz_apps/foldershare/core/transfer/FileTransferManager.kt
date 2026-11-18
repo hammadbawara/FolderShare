@@ -175,18 +175,18 @@ class FileTransferManager(
 
     private fun handleTransferFailure(error: Throwable?) {
         if (error is CancellationException) {
-            logger.d { "handleTransferFailure: Ignoring CancellationException" }
             return
         }
 
         val webDavEx = error as? WebDavException
         val isRetryable = webDavEx?.isRetryable ?: (error?.message?.contains("Write access", ignoreCase = true) != true)
+        if (webDavEx == null) {
+            logger.d(error) { "Transfer failed with unexpected exception (retryable=$isRetryable): ${error?.message}" }
+        }
         val userFriendlyMsg = webDavEx?.message ?: error?.message ?: "Transfer interrupted"
 
-        logger.e(error) { "handleTransferFailure: $userFriendlyMsg, isRetryable=$isRetryable" }
-
-        _transferProgress.update { current ->
-            current?.copy(
+        _transferProgress.update { progress ->
+            progress?.copy(
                 status = TransferStatus.PAUSED_ERROR,
                 errorMessage = userFriendlyMsg,
                 isAutoRetrying = isRetryable

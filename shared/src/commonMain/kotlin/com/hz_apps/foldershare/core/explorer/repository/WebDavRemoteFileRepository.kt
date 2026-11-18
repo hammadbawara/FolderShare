@@ -1,5 +1,6 @@
 package com.hz_apps.foldershare.core.explorer.repository
 
+import co.touchlab.kermit.Logger
 import com.hz_apps.foldershare.core.discovery.DeviceResolver
 import com.hz_apps.foldershare.core.explorer.client.KtorWebDavClient
 import com.hz_apps.foldershare.core.explorer.client.WebDavClient
@@ -28,6 +29,8 @@ class WebDavRemoteFileRepository(
     private val platformFileHandler: PlatformFileHandler = getPlatformFileHandler(),
     private val fileSystem: okio.FileSystem = okio.FileSystem.SYSTEM
 ) : RemoteFileRepository {
+
+    private val logger = Logger.withTag("WebDavRemoteFileRepository")
 
     private data class ResolvedDeviceSession(
         val hostAddress: String,
@@ -59,7 +62,10 @@ class WebDavRemoteFileRepository(
         action: suspend (session: ResolvedDeviceSession) -> T
     ): Result<T> {
         val session = resolveSession(deviceId, fallbackDevice)
-            ?: return Result.failure(IllegalStateException("Device '$deviceId' could not be resolved."))
+            ?: run {
+                logger.d { "Could not resolve endpoint for deviceId='$deviceId' (fallbackName='${fallbackDevice?.name}')" }
+                return Result.failure(WebDavException.DeviceUnavailable(fallbackDevice?.name))
+            }
 
         val firstResult = runCatching { action(session) }
         val exception = firstResult.exceptionOrNull()
@@ -222,7 +228,10 @@ class WebDavRemoteFileRepository(
         path: String,
         fallbackDevice: RemoteTargetDevice?
     ): String {
-        val endpoint = deviceResolver?.resolveEndpoint(deviceId, fallbackDevice) ?: fallbackDevice ?: return ""
+        val endpoint = deviceResolver?.resolveEndpoint(deviceId, fallbackDevice) ?: fallbackDevice ?: run {
+            logger.d { "Cannot build download URL: could not resolve endpoint for deviceId='$deviceId' (fallbackName='${fallbackDevice?.name}')" }
+            return ""
+        }
         val username = credentialDao?.getCredentialForDevice(deviceId)?.username
         val password = credentialDao?.getCredentialForDevice(deviceId)?.password
         val baseUrl = buildTargetUrl(endpoint.isHttps, endpoint.hostAddress, endpoint.port, path)
@@ -241,7 +250,10 @@ class WebDavRemoteFileRepository(
         fallbackDevice: RemoteTargetDevice?
     ): Result<DirectoryListingResult> = runCatching {
         val endpoint = deviceResolver?.resolveEndpoint(deviceId, fallbackDevice) ?: fallbackDevice
-            ?: throw IllegalStateException("Device '$deviceId' could not be resolved.")
+            ?: run {
+                logger.d { "Cannot authenticate: could not resolve endpoint for deviceId='$deviceId' (fallbackName='${fallbackDevice?.name}')" }
+                throw WebDavException.DeviceUnavailable(fallbackDevice?.name)
+            }
         val normalizedPath = PathUtils.normalizePath("/")
         val targetUrl = buildTargetUrl(endpoint.isHttps, endpoint.hostAddress, endpoint.port, "/")
         val xmlContent = webDavClient.propfind(

@@ -333,5 +333,23 @@ class WebDavRemoteFileRepositoryTest {
         assertTrue(result.isSuccess)
         assertEquals("http://192.168.49.1:8080/docs/file.pdf", fakeClient.lastDownloadTargetUrl)
     }
+
+    @Test
+    fun testUnresolvedDeviceReturnsDeviceUnavailableWithoutRawUuid() = runBlocking {
+        val fakeClient = FakeWebDavClient()
+        val repository = WebDavRemoteFileRepository(fakeClient)
+
+        val result = repository.listFiles(
+            deviceId = "550e8400-e29b-41d4-a716-446655440000",
+            path = "/",
+            fallbackDevice = null
+        )
+
+        assertTrue(result.isFailure)
+        val ex = result.exceptionOrNull()
+        assertTrue(ex is WebDavException.DeviceUnavailable)
+        assertFalse(ex.message.contains("550e8400"))
+        assertTrue((ex as WebDavException).isRetryable)
+    }
 }
 

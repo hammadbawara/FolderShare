@@ -13,16 +13,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -32,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
@@ -93,6 +98,7 @@ fun FileExplorerScreen(
     var showBackgroundMenu by remember { mutableStateOf(false) }
     var backgroundMenuOffset by remember { mutableStateOf(DpOffset.Zero) }
     var showTopBarMenu by remember { mutableStateOf(false) }
+    var activeSnackbarIsError by remember { mutableStateOf(false) }
 
     val density = LocalDensity.current
     val filePickerLauncher = rememberFilePickerLauncher { localFileSources ->
@@ -135,9 +141,10 @@ fun FileExplorerScreen(
         }
     }
 
-    LaunchedEffect(uiState.userMessage) {
+    LaunchedEffect(uiState.userMessage, uiState.isUserMessageError) {
         val msg = uiState.userMessage
         if (!msg.isNullOrBlank()) {
+            activeSnackbarIsError = uiState.isUserMessageError
             snackbarHostState.showSnackbar(msg)
             viewModel.clearUserMessage()
         }
@@ -241,12 +248,21 @@ fun FileExplorerScreen(
                 val rawMessage = snackbarData.visuals.message
                 val isSuccessTick = rawMessage.startsWith("✓ ")
                 val cleanMessage = if (isSuccessTick) rawMessage.removePrefix("✓ ") else rawMessage
+                val isError = activeSnackbarIsError && !isSuccessTick
 
                 Snackbar(
                     modifier = Modifier.padding(16.dp),
                     shape = RoundedCornerShape(12.dp),
-                    containerColor = MaterialTheme.colorScheme.inverseSurface,
-                    contentColor = MaterialTheme.colorScheme.inverseOnSurface
+                    containerColor = if (isError) {
+                        MaterialTheme.colorScheme.errorContainer
+                    } else {
+                        MaterialTheme.colorScheme.inverseSurface
+                    },
+                    contentColor = if (isError) {
+                        MaterialTheme.colorScheme.onErrorContainer
+                    } else {
+                        MaterialTheme.colorScheme.inverseOnSurface
+                    }
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -257,6 +273,13 @@ fun FileExplorerScreen(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = "Success",
                                 tint = MaterialTheme.colorScheme.inversePrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        } else if (isError) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = "Error",
+                                tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -346,39 +369,17 @@ fun FileExplorerScreen(
                         }
 
                         uiState.errorMessage != null -> {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Warning,
-                                    contentDescription = "Error",
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(48.dp)
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text(
-                                    text = "Failed to load directory",
-                                    style = MaterialTheme.typography.titleLarge.copy(
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = uiState.errorMessage ?: "Unknown error",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center
-                                )
-                                Spacer(modifier = Modifier.height(24.dp))
-                                Button(onClick = { viewModel.refresh() }) {
-                                    Text("Retry Connection")
+                            ExplorerErrorState(
+                                errorMessage = uiState.errorMessage ?: "Something went wrong.",
+                                onRetry = { viewModel.refresh() },
+                                onGoBack = {
+                                    if (onNavigateToFolder != null) {
+                                        onBackClick()
+                                    } else if (!viewModel.navigateUp()) {
+                                        onBackClick()
+                                    }
                                 }
-                            }
+                            )
                         }
 
                         uiState.files.isEmpty() -> {
@@ -576,6 +577,91 @@ fun FileExplorerScreen(
                 onCancel = { viewModel.cancelTransfer() },
                 onRetry = { viewModel.retryTransfer() }
             )
+        }
+    }
+}
+
+@Composable
+private fun ExplorerErrorState(
+    errorMessage: String,
+    onRetry: () -> Unit,
+    onGoBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scrollState = rememberScrollState()
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Column(
+            modifier = Modifier.widthIn(max = 480.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
+                modifier = Modifier.size(72.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = "Error",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Couldn't open folder",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = errorMessage,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedButton(onClick = onGoBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Go Back")
+                }
+                Button(onClick = onRetry) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Retry Connection")
+                }
+            }
         }
     }
 }

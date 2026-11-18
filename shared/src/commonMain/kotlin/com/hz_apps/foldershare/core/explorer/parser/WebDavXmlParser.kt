@@ -1,5 +1,6 @@
 package com.hz_apps.foldershare.core.explorer.parser
 
+import co.touchlab.kermit.Logger
 import com.fleeksoft.ksoup.Ksoup
 import com.fleeksoft.ksoup.nodes.Element
 import com.fleeksoft.ksoup.parser.Parser
@@ -11,6 +12,8 @@ import com.hz_apps.foldershare.core.explorer.util.parseHttpDateToTimestamp
  * Pure Kotlin Multiplatform WebDAV XML PROPFIND parser powered by KSoup.
  */
 object WebDavXmlParser {
+
+    private val logger = Logger.withTag("WebDavXmlParser")
 
     fun parsePropfindResponse(xmlContent: String, requestPath: String): DirectoryListingResult {
         val resultList = mutableListOf<RemoteFile>()
@@ -64,8 +67,8 @@ object WebDavXmlParser {
                     )
                 )
             }
-        } catch (_: Exception) {
-            // Handle parsing failure gracefully
+        } catch (e: Exception) {
+            logger.d(e) { "Failed to parse WebDAV PROPFIND response for path '$requestPath'" }
         }
 
         val sortedFiles = resultList.sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase() }))

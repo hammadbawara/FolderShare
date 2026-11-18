@@ -12,11 +12,17 @@ sealed class WebDavException(
     abstract val isRetryable: Boolean
 
     /**
-     * HTTP 403 Forbidden or write access disabled on the remote folder.
+     * HTTP 403 Forbidden or access disabled on the remote folder.
      */
     class PermissionDenied(
         val path: String = "",
-        message: String = "Write access is disabled for this folder"
+        val isReadOperation: Boolean = false,
+        val serverReason: String? = null,
+        message: String = serverReason ?: if (isReadOperation) {
+            "Read access is disabled for this folder"
+        } else {
+            "Write access is disabled for this folder"
+        }
     ) : WebDavException(message) {
         override val isRetryable: Boolean = false
     }
@@ -31,20 +37,21 @@ sealed class WebDavException(
     }
 
     /**
-     * HTTP 404 Not Found - Target resource or parent directory does not exist.
+     * HTTP 404 Not Found - Target file or directory does not exist.
      */
     class NotFound(
         val path: String = "",
-        message: String = "Resource or directory not found"
+        message: String = "File or folder not found"
     ) : WebDavException(message) {
         override val isRetryable: Boolean = false
     }
 
     /**
-     * HTTP 405 Method Not Allowed - Unsupported WebDAV method on target resource.
+     * HTTP 405 Method Not Allowed - Unsupported WebDAV method or resource already exists.
      */
     class MethodNotAllowed(
-        message: String = "Method not allowed for this resource"
+        val serverReason: String? = null,
+        message: String = serverReason ?: "This action is not allowed here"
     ) : WebDavException(message) {
         override val isRetryable: Boolean = false
     }
@@ -53,16 +60,16 @@ sealed class WebDavException(
      * HTTP 409 Conflict - Directory structure missing or conflict.
      */
     class Conflict(
-        message: String = "Conflict: Parent directory does not exist"
+        message: String = "Parent folder does not exist"
     ) : WebDavException(message) {
         override val isRetryable: Boolean = false
     }
 
     /**
-     * Request Timeout or Socket Timeout during file transfer.
+     * Request Timeout or Socket Timeout during file transfer or listing.
      */
     class Timeout(
-        message: String = "Network connection or request timed out",
+        message: String = "Connection timed out. The device took too long to respond.",
         cause: Throwable? = null
     ) : WebDavException(message, cause) {
         override val isRetryable: Boolean = true
@@ -72,9 +79,34 @@ sealed class WebDavException(
      * General Network Failure - Host unreachable, connection dropped, socket reset.
      */
     class NetworkError(
-        message: String = "Network connection failed",
+        message: String = "Could not connect to the device. Check your Wi-Fi connection.",
         cause: Throwable? = null
     ) : WebDavException(message, cause) {
+        override val isRetryable: Boolean = true
+    }
+
+    /**
+     * Local storage/filesystem error during upload or download (e.g., out of space, unreadable file).
+     */
+    class StorageError(
+        val isOutOfSpace: Boolean = false,
+        message: String = if (isOutOfSpace) {
+            "Not enough storage space on this device"
+        } else {
+            "Could not access the local file"
+        },
+        cause: Throwable? = null
+    ) : WebDavException(message, cause) {
+        override val isRetryable: Boolean = false
+    }
+
+    /**
+     * Device endpoint could not be resolved on the local network.
+     */
+    class DeviceUnavailable(
+        val deviceName: String? = null,
+        message: String = "Could not find the device on your local network."
+    ) : WebDavException(message) {
         override val isRetryable: Boolean = true
     }
 
@@ -83,7 +115,8 @@ sealed class WebDavException(
      */
     class ServerError(
         val statusCode: Int,
-        message: String = "Server internal error (HTTP $statusCode)"
+        val serverReason: String? = null,
+        message: String = serverReason ?: "The remote device encountered an error (HTTP $statusCode)"
     ) : WebDavException(message) {
         override val isRetryable: Boolean = true
     }
@@ -93,7 +126,8 @@ sealed class WebDavException(
      */
     class Unknown(
         val statusCode: Int,
-        message: String = "Server returned HTTP $statusCode"
+        val serverReason: String? = null,
+        message: String = serverReason ?: "Unexpected response from device (HTTP $statusCode)"
     ) : WebDavException(message) {
         override val isRetryable: Boolean = false
     }

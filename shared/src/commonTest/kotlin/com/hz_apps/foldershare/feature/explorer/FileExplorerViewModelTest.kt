@@ -3,6 +3,7 @@ package com.hz_apps.foldershare.feature.explorer
 import com.hz_apps.foldershare.core.discovery.DeviceResolver
 import com.hz_apps.foldershare.core.explorer.model.RemoteFile
 import com.hz_apps.foldershare.core.explorer.model.RemoteTargetDevice
+import com.hz_apps.foldershare.core.explorer.model.WebDavException
 import com.hz_apps.foldershare.core.explorer.util.PlatformFileHandler
 import com.hz_apps.foldershare.core.transfer.FakeFileTransferController
 import com.hz_apps.foldershare.core.transfer.FakeRemoteFileRepository
@@ -390,5 +391,147 @@ class FileExplorerViewModelTest {
 
         assertEquals(true, viewModel.uiState.value.isTransferShowMoreExpanded)
         assertEquals(true, fakeClientPreferenceDao.getClientPreference()?.isTransferShowMoreExpanded)
+    }
+
+    @Test
+    fun testLoadDirectoryFailureSetsErrorMessageAndClearsOnRetry() = runTest(testDispatcher) {
+        var shouldFail = true
+        val repo = object : FakeRemoteFileRepository() {
+            override suspend fun listFiles(
+                deviceId: String,
+                path: String,
+                fallbackDevice: RemoteTargetDevice?
+            ): Result<com.hz_apps.foldershare.core.explorer.repository.DirectoryListingResult> {
+                return if (shouldFail) {
+                    Result.failure(WebDavException.NetworkError("Connection refused. Make sure Folder Share is running on the device."))
+                } else {
+                    Result.success(
+                        com.hz_apps.foldershare.core.explorer.repository.DirectoryListingResult(
+                            files = listOf(testFile),
+                            isWriteAllowed = true
+                        )
+                    )
+                }
+            }
+        }
+        val platformHandler = RecordingPlatformFileHandler()
+        val resolver = TestDeviceResolver()
+        val transferController = FakeFileTransferController()
+        val transferManager = FileTransferManager(repo, transferController, resolver, platformHandler, testDispatcher)
+
+        val viewModel = FileExplorerViewModel(
+            repository = repo,
+            platformFileHandler = platformHandler,
+            deviceResolver = resolver,
+            fileTransferManager = transferManager
+        )
+
+        viewModel.setTargetDevice(testDevice)
+        advanceUntilIdle()
+
+        val errorMsg = viewModel.uiState.value.errorMessage
+        kotlin.test.assertNotNull(errorMsg)
+        kotlin.test.assertFalse(errorMsg.contains("http://"))
+
+        shouldFail = false
+        viewModel.refresh()
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.errorMessage)
+        assertEquals(listOf(testFile), viewModel.uiState.value.files)
+    }
+
+    @Test
+    fun testActionFailureSetsErrorUserMessageAndClearResetsFlag() = runTest(testDispatcher) {
+        val repo = object : FakeRemoteFileRepository() {
+            override suspend fun listFiles(
+                deviceId: String,
+                path: String,
+                fallbackDevice: RemoteTargetDevice?
+            ) = Result.success(
+                com.hz_apps.foldershare.core.explorer.repository.DirectoryListingResult(
+                    files = emptyList(),
+                    isWriteAllowed = true
+                )
+            )
+
+            override suspend fun createFolder(
+                deviceId: String,
+                parentPath: String,
+                folderName: String,
+                fallbackDevice: RemoteTargetDevice?
+            ): Result<Unit> = Result.failure(
+                WebDavException.MethodNotAllowed(
+                    serverReason = "Resource already exists",
+                    message = "A file or folder with that name already exists"
+                )
+            )
+        }
+        val platformHandler = RecordingPlatformFileHandler()
+        val resolver = TestDeviceResolver()
+        val transferController = FakeFileTransferController()
+        val transferManager = FileTransferManager(repo, transferController, resolver, platformHandler, testDispatcher)
+
+        val viewModel = FileExplorerViewModel(
+            repository = repo,
+            platformFileHandler = platformHandler,
+            deviceResolver = resolver,
+            fileTransferManager = transferManager
+        )
+
+        viewModel.setTargetDevice(testDevice)
+        advanceUntilIdle()
+
+        viewModel.createFolder("Photos")
+        advanceUntilIdle()
+
+        assertEquals("A file or folder with that name already exists", viewModel.uiState.value.userMessage)
+        assertEquals(true, viewModel.uiState.value.isUserMessageError)
+
+        viewModel.clearUserMessage()
+        assertNull(viewModel.uiState.value.userMessage)
+        assertEquals(false, viewModel.uiState.value.isUserMessageError)
+    }
+
+    @Test
+    fun testUploadInReadOnlyFolderShowsErrorMessageWithoutTransferDialog() = runTest(testDispatcher) {
+        val repo = object : FakeRemoteFileRepository() {
+            override suspend fun listFiles(
+                deviceId: String,
+                path: String,
+                fallbackDevice: RemoteTargetDevice?
+            ) = Result.success(
+                com.hz_apps.foldershare.core.explorer.repository.DirectoryListingResult(
+                    files = emptyList(),
+                    isWriteAllowed = false
+                )
+            )
+        }
+        val platformHandler = RecordingPlatformFileHandler()
+        val resolver = TestDeviceResolver()
+        val transferController = FakeFileTransferController()
+        val transferManager = FileTransferManager(repo, transferController, resolver, platformHandler, testDispatcher)
+
+        val viewModel = FileExplorerViewModel(
+            repository = repo,
+            platformFileHandler = platformHandler,
+            deviceResolver = resolver,
+            fileTransferManager = transferManager
+        )
+
+        viewModel.setTargetDevice(testDevice)
+        advanceUntilIdle()
+
+        val localSource = object : com.hz_apps.foldershare.core.explorer.model.LocalFileSource {
+            override val name: String = "report.pdf"
+            override val size: Long = 1024L
+            override fun openStream(): java.io.InputStream = java.io.ByteArrayInputStream(ByteArray(1024))
+        }
+
+        viewModel.uploadFiles(listOf(localSource))
+
+        assertNull(viewModel.uiState.value.transferProgress)
+        assertEquals("This folder is read-only. You can't upload files here.", viewModel.uiState.value.userMessage)
+        assertEquals(true, viewModel.uiState.value.isUserMessageError)
     }
 }
