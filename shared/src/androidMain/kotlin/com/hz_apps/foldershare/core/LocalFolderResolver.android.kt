@@ -149,6 +149,16 @@ class AndroidSafVirtualFile(
         return doc.delete()
     }
 
+    override suspend fun renameTo(newName: String): Boolean {
+        if (newName.isBlank() || newName.contains('/') || newName.contains('\\')) return false
+        if (doc.parentFile?.findFile(newName) != null) return false
+        return try {
+            doc.renameTo(newName)
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     override suspend fun createChildFile(name: String): VirtualFile? {
         if (!isDirectory) return null
         val existing = doc.findFile(name)
