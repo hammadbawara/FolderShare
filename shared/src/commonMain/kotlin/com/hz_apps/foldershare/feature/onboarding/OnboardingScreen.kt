@@ -1,26 +1,27 @@
 package com.hz_apps.foldershare.feature.onboarding
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Devices
@@ -39,11 +40,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +52,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.hz_apps.foldershare.core.util.AppLinks
 import com.hz_apps.foldershare.core.util.setClipboardText
@@ -69,7 +69,9 @@ fun OnboardingScreen(
 ) {
     val isTv = remember { getPlatform().isTv }
     val totalSteps = 2
-    var currentStep by rememberSaveable { mutableIntStateOf(0) }
+    val pagerState = rememberPagerState(pageCount = { totalSteps })
+    val currentStep = pagerState.currentPage
+    val coroutineScope = rememberCoroutineScope()
     val primaryActionFocusRequester = remember { FocusRequester() }
 
     LaunchedEffect(currentStep) {
@@ -87,7 +89,6 @@ fun OnboardingScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .statusBarsPadding()
                 .tvFocusContainer(primaryActionFocusRequester),
             contentAlignment = Alignment.Center
         ) {
@@ -95,13 +96,15 @@ fun OnboardingScreen(
                 modifier = Modifier
                     .widthIn(max = if (isTv) 820.dp else 680.dp)
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                    .padding(horizontal = if (isTv) 24.dp else 20.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Top Bar: Step Indicator & Skip Button
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 40.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -140,20 +143,21 @@ fun OnboardingScreen(
                     }
                 }
 
-                // Main Step Content
-                Box(
+                // Main Step Content (Horizontally Scrollable)
+                HorizontalPager(
+                    state = pagerState,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AnimatedContent(
-                        targetState = currentStep,
-                        label = "OnboardingStepContent"
-                    ) { step ->
-                        when (step) {
+                ) { page ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        when (page) {
                             0 -> WorksOnAllDevicesStep(isTv = isTv)
                             else -> GetOnOtherDevicesStep(isTv = isTv)
                         }
@@ -165,28 +169,16 @@ fun OnboardingScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (currentStep > 0) {
-                        OutlinedButton(
-                            onClick = { currentStep-- }
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Back")
-                        }
-                    } else {
-                        Spacer(modifier = Modifier.width(1.dp))
-                    }
-
                     if (currentStep < totalSteps - 1) {
                         Button(
-                            onClick = { currentStep++ },
+                            onClick = {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(currentStep + 1)
+                                }
+                            },
                             modifier = Modifier.focusRequester(primaryActionFocusRequester)
                         ) {
                             Text("Next")
@@ -197,48 +189,62 @@ fun OnboardingScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                         }
+                    } else if (isTv) {
+                        Button(
+                            onClick = onFinishToDevices,
+                            modifier = Modifier.focusRequester(primaryActionFocusRequester)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Devices,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Find Nearby Devices")
+                        }
                     } else {
-                        if (isTv) {
-                            Button(
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedButton(
                                 onClick = onFinishToDevices,
-                                modifier = Modifier.focusRequester(primaryActionFocusRequester)
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Devices,
                                     contentDescription = null,
                                     modifier = Modifier.size(18.dp)
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Find Nearby Devices")
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Find Devices",
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
-                        } else {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            Button(
+                                onClick = onFinishToShare,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .focusRequester(primaryActionFocusRequester),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
                             ) {
-                                OutlinedButton(
-                                    onClick = onFinishToDevices
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Devices,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Find Devices")
-                                }
-                                Button(
-                                    onClick = onFinishToShare,
-                                    modifier = Modifier.focusRequester(primaryActionFocusRequester)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.FolderShared,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Share a Folder")
-                                }
+                                Icon(
+                                    imageVector = Icons.Default.FolderShared,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Share a Folder",
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
