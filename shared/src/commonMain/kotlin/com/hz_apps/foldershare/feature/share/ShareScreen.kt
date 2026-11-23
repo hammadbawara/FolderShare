@@ -65,6 +65,8 @@ import com.hz_apps.foldershare.feature.share.components.BackgroundPermissionRati
 import com.hz_apps.foldershare.feature.share.components.BackgroundRestrictionBanner
 import com.hz_apps.foldershare.feature.share.components.FolderConfigDialog
 import com.hz_apps.foldershare.feature.share.components.SharedFolderCard
+import com.hz_apps.foldershare.feature.share.components.StoragePermissionBanner
+import com.hz_apps.foldershare.feature.share.components.StoragePermissionRationaleDialog
 import com.hz_apps.foldershare.ui.components.ActionProgressDialog
 import com.hz_apps.foldershare.ui.components.StatusBadge
 import com.hz_apps.foldershare.ui.components.VerticalScrollbar
@@ -90,6 +92,9 @@ fun ShareScreen(
     val permissionLauncher = rememberBackgroundPermissionLauncher { status ->
         viewModel.onPermissionsResult(status)
     }
+    val storagePermissionLauncher = rememberStoragePermissionLauncher { granted ->
+        viewModel.onStoragePermissionResult(granted)
+    }
 
     androidx.compose.runtime.LaunchedEffect(uiState.errorMessage) {
         val msg = uiState.errorMessage
@@ -106,7 +111,7 @@ fun ShareScreen(
             name.lowercase().contains("document") -> "📄"
             name.lowercase().contains("music") || name.lowercase().contains("audio") -> "🎵"
             name.lowercase().contains("video") || name.lowercase().contains("movie") -> "🎬"
-            name.lowercase().contains("picture") || name.lowercase().contains("image") || name.lowercase().contains("photo") -> "🖼️"
+            name.lowercase().contains("picture") || name.lowercase().contains("image") || name.lowercase().contains("photo") || name.lowercase().contains("dcim") -> "🖼️"
             else -> "📁"
         }
 
@@ -118,6 +123,13 @@ fun ShareScreen(
             isWriteAllowed = false,
             isShared = true
         )
+    }
+
+    androidx.compose.runtime.LaunchedEffect(uiState.shouldLaunchFolderPicker) {
+        if (uiState.shouldLaunchFolderPicker) {
+            viewModel.onFolderPickerLaunched()
+            folderPicker.launch()
+        }
     }
 
     Scaffold(
@@ -150,6 +162,21 @@ fun ShareScreen(
                     .verticalScroll(scrollState)
                     .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
+
+                // Storage Permission Missing Warning Banner
+                AnimatedVisibility(
+                    visible = !uiState.isStoragePermissionGranted && uiState.folders.isNotEmpty(),
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Column {
+                        StoragePermissionBanner(
+                            onGrantClick = { viewModel.onGrantStoragePermissionClicked() },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
 
                 // Compact Background Restriction Warning Banner
                 AnimatedVisibility(
@@ -336,7 +363,7 @@ fun ShareScreen(
                     )
 
                     Button(
-                        onClick = { folderPicker.launch() },
+                        onClick = { viewModel.onAddFolderClicked() },
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Icon(
@@ -395,7 +422,7 @@ fun ShareScreen(
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     OutlinedButton(
-                                        onClick = { folderPicker.launch() },
+                                        onClick = { viewModel.onAddFolderClicked() },
                                         shape = RoundedCornerShape(12.dp)
                                     ) {
                                         Icon(
@@ -482,6 +509,17 @@ fun ShareScreen(
             message = "Please wait while the sharing is stopping...",
             onCancel = { },
             isCancellable = false
+        )
+    }
+
+    if (uiState.showStoragePermissionDialog) {
+        StoragePermissionRationaleDialog(
+            onGrantClick = {
+                storagePermissionLauncher.launchPermissionRequest()
+            },
+            onDismissRequest = {
+                viewModel.onDismissStoragePermissionDialog()
+            }
         )
     }
 

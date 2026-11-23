@@ -3,6 +3,7 @@ package com.hz_apps.foldershare.feature.share
 import com.hz_apps.foldershare.core.discovery.ServiceAdvertiser
 import com.hz_apps.foldershare.core.permissions.BackgroundPermissionHandler
 import com.hz_apps.foldershare.core.permissions.BackgroundPermissionStatus
+import com.hz_apps.foldershare.core.permissions.StoragePermissionHandler
 import com.hz_apps.foldershare.core.server.ServerController
 import com.hz_apps.foldershare.core.server.ServerState
 import com.hz_apps.foldershare.core.server.ServerStatus
@@ -101,6 +102,18 @@ class ShareViewModelTest {
         }
     }
 
+    private class FakeStoragePermissionHandler(
+        var isGranted: Boolean = true
+    ) : StoragePermissionHandler {
+        var openAppSettingsCalled = false
+
+        override fun hasStoragePermission(): Boolean = isGranted
+
+        override fun openAppSettings() {
+            openAppSettingsCalled = true
+        }
+    }
+
     @BeforeTest
     fun setup() {
         Dispatchers.setMain(testDispatcher)
@@ -117,7 +130,8 @@ class ShareViewModelTest {
         val folderDao = FakeFolderDao(emptyList())
         val advertiser = FakeAdvertiser()
         val permissionHandler = FakeBackgroundPermissionHandler()
-        val viewModel = ShareViewModel(serverController, folderDao, advertiser, permissionHandler)
+        val storagePermissionHandler = FakeStoragePermissionHandler()
+        val viewModel = ShareViewModel(serverController, folderDao, advertiser, permissionHandler, storagePermissionHandler)
 
         backgroundScope.launch { viewModel.uiState.collect() }
         advanceUntilIdle()
@@ -142,7 +156,8 @@ class ShareViewModelTest {
         val folderDao = FakeFolderDao(listOf(initialFolder))
         val advertiser = FakeAdvertiser()
         val permissionHandler = FakeBackgroundPermissionHandler()
-        val viewModel = ShareViewModel(serverController, folderDao, advertiser, permissionHandler)
+        val storagePermissionHandler = FakeStoragePermissionHandler()
+        val viewModel = ShareViewModel(serverController, folderDao, advertiser, permissionHandler, storagePermissionHandler)
 
         backgroundScope.launch { viewModel.uiState.collect() }
         advanceUntilIdle()
@@ -170,7 +185,8 @@ class ShareViewModelTest {
                 isBatteryOptimizationIgnored = false
             )
         )
-        val viewModel = ShareViewModel(serverController, folderDao, advertiser, permissionHandler)
+        val storagePermissionHandler = FakeStoragePermissionHandler()
+        val viewModel = ShareViewModel(serverController, folderDao, advertiser, permissionHandler, storagePermissionHandler)
 
         backgroundScope.launch { viewModel.uiState.collect() }
         advanceUntilIdle()
@@ -194,7 +210,8 @@ class ShareViewModelTest {
                 isBatteryOptimizationIgnored = false
             )
         )
-        val viewModel = ShareViewModel(serverController, folderDao, advertiser, permissionHandler)
+        val storagePermissionHandler = FakeStoragePermissionHandler()
+        val viewModel = ShareViewModel(serverController, folderDao, advertiser, permissionHandler, storagePermissionHandler)
 
         backgroundScope.launch { viewModel.uiState.collect() }
         advanceUntilIdle()
@@ -229,7 +246,8 @@ class ShareViewModelTest {
                 isBatteryOptimizationIgnored = true
             )
         )
-        val viewModel = ShareViewModel(serverController, folderDao, advertiser, permissionHandler)
+        val storagePermissionHandler = FakeStoragePermissionHandler()
+        val viewModel = ShareViewModel(serverController, folderDao, advertiser, permissionHandler, storagePermissionHandler)
 
         backgroundScope.launch { viewModel.uiState.collect() }
         advanceUntilIdle()
@@ -260,5 +278,169 @@ class ShareViewModelTest {
         )
         advanceUntilIdle()
         assertFalse(viewModel.uiState.value.isBackgroundRestricted)
+    }
+
+    @Test
+    fun testAddFolderWithStoragePermissionLaunchesFolderPicker() = runTest(testDispatcher) {
+        val serverController = FakeServerController()
+        val folderDao = FakeFolderDao(emptyList())
+        val advertiser = FakeAdvertiser()
+        val permissionHandler = FakeBackgroundPermissionHandler()
+        val storagePermissionHandler = FakeStoragePermissionHandler(isGranted = true)
+        val viewModel = ShareViewModel(serverController, folderDao, advertiser, permissionHandler, storagePermissionHandler)
+
+        backgroundScope.launch { viewModel.uiState.collect() }
+        advanceUntilIdle()
+
+        viewModel.onAddFolderClicked()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.shouldLaunchFolderPicker)
+        assertFalse(viewModel.uiState.value.showStoragePermissionDialog)
+
+        viewModel.onFolderPickerLaunched()
+        advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.shouldLaunchFolderPicker)
+    }
+
+    @Test
+    fun testAddFolderWithoutStoragePermissionShowsDialogThenLaunchesPickerOnGrant() = runTest(testDispatcher) {
+        val serverController = FakeServerController()
+        val folderDao = FakeFolderDao(emptyList())
+        val advertiser = FakeAdvertiser()
+        val permissionHandler = FakeBackgroundPermissionHandler()
+        val storagePermissionHandler = FakeStoragePermissionHandler(isGranted = false)
+        val viewModel = ShareViewModel(serverController, folderDao, advertiser, permissionHandler, storagePermissionHandler)
+
+        backgroundScope.launch { viewModel.uiState.collect() }
+        advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.isStoragePermissionGranted)
+
+        viewModel.onAddFolderClicked()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.showStoragePermissionDialog)
+        assertFalse(viewModel.uiState.value.shouldLaunchFolderPicker)
+
+        // Grant storage permission -> dialog closes and folder picker launches
+        storagePermissionHandler.isGranted = true
+        viewModel.onStoragePermissionResult(true)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isStoragePermissionGranted)
+        assertFalse(viewModel.uiState.value.showStoragePermissionDialog)
+        assertTrue(viewModel.uiState.value.shouldLaunchFolderPicker)
+
+        // Consume launcher trigger and ensure duplicate ON_RESUME result is idempotent
+        viewModel.onFolderPickerLaunched()
+        advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.shouldLaunchFolderPicker)
+
+        viewModel.onStoragePermissionResult(true)
+        advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.shouldLaunchFolderPicker)
+    }
+
+    @Test
+    fun testToggleSharingWithoutStoragePermissionShowsDialogThenStartsServerOnGrant() = runTest(testDispatcher) {
+        val serverController = FakeServerController()
+        val initialFolder = FolderConfigEntity(id = 1, name = "Music", path = "/music", isShared = true)
+        val folderDao = FakeFolderDao(listOf(initialFolder))
+        val advertiser = FakeAdvertiser()
+        val permissionHandler = FakeBackgroundPermissionHandler()
+        val storagePermissionHandler = FakeStoragePermissionHandler(isGranted = false)
+        val viewModel = ShareViewModel(serverController, folderDao, advertiser, permissionHandler, storagePermissionHandler)
+
+        backgroundScope.launch { viewModel.uiState.collect() }
+        advanceUntilIdle()
+
+        viewModel.toggleSharing()
+        advanceUntilIdle()
+
+        assertFalse(serverController.startServerCalled)
+        assertTrue(viewModel.uiState.value.showStoragePermissionDialog)
+
+        storagePermissionHandler.isGranted = true
+        viewModel.onStoragePermissionResult(true)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.showStoragePermissionDialog)
+        assertTrue(serverController.startServerCalled)
+        assertTrue(viewModel.uiState.value.isSharing)
+    }
+
+    @Test
+    fun testToggleSharingWithoutStorageOrBackgroundPermissionChainsDialogs() = runTest(testDispatcher) {
+        val serverController = FakeServerController()
+        val initialFolder = FolderConfigEntity(id = 1, name = "Music", path = "/music", isShared = true)
+        val folderDao = FakeFolderDao(listOf(initialFolder))
+        val advertiser = FakeAdvertiser()
+        val permissionHandler = FakeBackgroundPermissionHandler(
+            currentStatus = BackgroundPermissionStatus(
+                isNotificationGranted = false,
+                isBatteryOptimizationIgnored = false
+            )
+        )
+        val storagePermissionHandler = FakeStoragePermissionHandler(isGranted = false)
+        val viewModel = ShareViewModel(serverController, folderDao, advertiser, permissionHandler, storagePermissionHandler)
+
+        backgroundScope.launch { viewModel.uiState.collect() }
+        advanceUntilIdle()
+
+        viewModel.toggleSharing()
+        advanceUntilIdle()
+
+        assertFalse(serverController.startServerCalled)
+        assertTrue(viewModel.uiState.value.showStoragePermissionDialog)
+        assertFalse(viewModel.uiState.value.showPermissionRationaleDialog)
+
+        // Grant storage permission -> chains to background permission rationale dialog
+        storagePermissionHandler.isGranted = true
+        viewModel.onStoragePermissionResult(true)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.showStoragePermissionDialog)
+        assertTrue(viewModel.uiState.value.showPermissionRationaleDialog)
+        assertFalse(serverController.startServerCalled)
+
+        // Grant background permissions -> starts server
+        viewModel.onPermissionsResult(
+            BackgroundPermissionStatus(
+                isNotificationGranted = true,
+                isBatteryOptimizationIgnored = true
+            )
+        )
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.showPermissionRationaleDialog)
+        assertTrue(serverController.startServerCalled)
+    }
+
+    @Test
+    fun testDismissStoragePermissionDialogClearsPendingAction() = runTest(testDispatcher) {
+        val serverController = FakeServerController()
+        val initialFolder = FolderConfigEntity(id = 1, name = "Music", path = "/music", isShared = true)
+        val folderDao = FakeFolderDao(listOf(initialFolder))
+        val advertiser = FakeAdvertiser()
+        val permissionHandler = FakeBackgroundPermissionHandler()
+        val storagePermissionHandler = FakeStoragePermissionHandler(isGranted = false)
+        val viewModel = ShareViewModel(serverController, folderDao, advertiser, permissionHandler, storagePermissionHandler)
+
+        backgroundScope.launch { viewModel.uiState.collect() }
+        advanceUntilIdle()
+
+        viewModel.onAddFolderClicked()
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.showStoragePermissionDialog)
+
+        viewModel.onDismissStoragePermissionDialog()
+        advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.showStoragePermissionDialog)
+
+        // Subsequent permission grant (e.g. from ON_RESUME) must not trigger old pending action
+        viewModel.onStoragePermissionResult(true)
+        advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.shouldLaunchFolderPicker)
+        assertFalse(serverController.startServerCalled)
     }
 }

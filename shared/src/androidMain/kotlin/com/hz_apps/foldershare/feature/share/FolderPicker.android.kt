@@ -1,48 +1,37 @@
 package com.hz_apps.foldershare.feature.share
 
-import android.content.Intent
-import android.provider.DocumentsContract
-import com.hz_apps.foldershare.core.discovery.AndroidContextProvider
-import io.github.vinceglb.filekit.AndroidFile
-import io.github.vinceglb.filekit.PlatformFile
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 
-actual fun processFolderPick(directory: PlatformFile): Pair<String, String> {
-    val uri = when (val androidFile = directory.androidFile) {
-        is AndroidFile.FileWrapper -> {
-            val file = androidFile.file
-            return Pair(file.absolutePath, file.name.ifEmpty { "Selected Folder" })
-        }
-        is AndroidFile.UriWrapper -> androidFile.uri
-    }
-    val context = AndroidContextProvider.applicationContext
-    var folderName: String? = null
+@Composable
+actual fun rememberFolderPickerLauncher(
+    onFolderPicked: (path: String, name: String) -> Unit
+): FolderPickerLauncher {
+    var showPicker by rememberSaveable { mutableStateOf(false) }
+    val currentOnFolderPicked by rememberUpdatedState(onFolderPicked)
 
-    if (context != null) {
-        val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-        try {
-            context.contentResolver.takePersistableUriPermission(uri, flags)
-        } catch (_: Exception) {}
-
-        try {
-            val docUri = DocumentsContract.buildDocumentUriUsingTree(
-                uri,
-                DocumentsContract.getTreeDocumentId(uri)
-            )
-            context.contentResolver.query(
-                docUri,
-                arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME),
-                null,
-                null,
-                null
-            )?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    folderName = cursor.getString(0)
-                }
+    if (showPicker) {
+        LocalFolderPickerDialog(
+            onFolderSelected = { path, name ->
+                showPicker = false
+                currentOnFolderPicked(path, name)
+            },
+            onDismissRequest = {
+                showPicker = false
             }
-        } catch (_: Exception) {}
+        )
     }
 
-    val finalName = folderName ?: uri.lastPathSegment?.substringAfterLast(':')?.substringAfterLast('/')
-        ?: "Selected Folder"
-    return Pair(uri.toString(), finalName)
+    return remember {
+        object : FolderPickerLauncher {
+            override fun launch() {
+                showPicker = true
+            }
+        }
+    }
 }

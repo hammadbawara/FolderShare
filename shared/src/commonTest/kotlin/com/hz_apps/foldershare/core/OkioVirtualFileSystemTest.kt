@@ -57,4 +57,46 @@ class OkioVirtualFileSystemTest {
             fileSystem.deleteRecursively(tempDir)
         }
     }
+
+    @Test
+    fun testResolveOkioPathInFolderAndTraversalPrevention() = runBlocking {
+        val fileSystem = FileSystem.SYSTEM
+        val baseDir = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "foldershare_resolver_test_${System.currentTimeMillis()}"
+        val sharedRoot = baseDir / "music"
+        val nestedDir = sharedRoot / "nested"
+        val siblingPrefixDir = baseDir / "music2"
+        fileSystem.createDirectories(nestedDir)
+        fileSystem.createDirectories(siblingPrefixDir)
+
+        try {
+            val nestedFile = nestedDir / "hello.txt"
+            fileSystem.sink(nestedFile).close()
+
+            val outsideSecret = baseDir / "secret.txt"
+            fileSystem.sink(outsideSecret).close()
+
+            val siblingSecret = siblingPrefixDir / "secret.txt"
+            fileSystem.sink(siblingSecret).close()
+
+            // Resolves root
+            val resolvedRoot = resolveOkioPathInFolder(sharedRoot.toString(), "Music", "", fileSystem)
+            assertNotNull(resolvedRoot)
+            assertTrue(resolvedRoot.isDirectory)
+            assertEquals("/Music", resolvedRoot.path)
+
+            // Resolves nested file
+            val resolvedNested = resolveOkioPathInFolder(sharedRoot.toString(), "Music", "nested/hello.txt", fileSystem)
+            assertNotNull(resolvedNested)
+            assertEquals("hello.txt", resolvedNested.name)
+            assertEquals("/Music/nested/hello.txt", resolvedNested.path)
+
+            // Rejects parent traversal
+            assertNull(resolveOkioPathInFolder(sharedRoot.toString(), "Music", "../secret.txt", fileSystem))
+
+            // Rejects sibling directory with shared path prefix (e.g. /music vs /music2)
+            assertNull(resolveOkioPathInFolder(sharedRoot.toString(), "Music", "../music2/secret.txt", fileSystem))
+        } finally {
+            fileSystem.deleteRecursively(baseDir)
+        }
+    }
 }

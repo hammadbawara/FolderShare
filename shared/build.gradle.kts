@@ -67,7 +67,6 @@ kotlin {
             implementation(libs.compose.uiTooling)
             implementation(libs.koin.android)
             implementation(libs.jmdns)
-            implementation(libs.androidx.documentfile)
             implementation(libs.androidx.activity.compose)
         }
         jvmMain.dependencies {

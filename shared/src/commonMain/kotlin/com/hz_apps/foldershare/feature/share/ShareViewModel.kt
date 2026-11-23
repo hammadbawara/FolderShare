@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.hz_apps.foldershare.core.discovery.ServiceAdvertiser
 import com.hz_apps.foldershare.core.permissions.BackgroundPermissionHandler
 import com.hz_apps.foldershare.core.permissions.BackgroundPermissionStatus
+import com.hz_apps.foldershare.core.permissions.StoragePermissionHandler
 import com.hz_apps.foldershare.core.server.ServerController
 import com.hz_apps.foldershare.core.server.ServerStatus
 import com.hz_apps.foldershare.core.util.formatHostForUrl
@@ -30,6 +31,9 @@ data class ShareUiState(
     val permissionStatus: BackgroundPermissionStatus = BackgroundPermissionStatus(),
     val showPermissionRationaleDialog: Boolean = false,
     val isBackgroundRestricted: Boolean = false,
+    val isStoragePermissionGranted: Boolean = true,
+    val showStoragePermissionDialog: Boolean = false,
+    val shouldLaunchFolderPicker: Boolean = false,
     val isLoadingFolders: Boolean = true
 ) {
     val isSharing: Boolean get() = serverStatus == ServerStatus.RUNNING
@@ -37,18 +41,35 @@ data class ShareUiState(
     val activeFoldersCount: Int get() = folders.count { it.isShared }
 }
 
+private enum class PendingStorageAction {
+    NONE,
+    ADD_FOLDER,
+    START_SHARING
+}
+
+private data class StoragePermissionUiState(
+    val isGranted: Boolean,
+    val showDialog: Boolean,
+    val shouldLaunchPicker: Boolean
+)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class ShareViewModel(
     private val serverController: ServerController,
     private val folderDao: FolderConfigDao,
     private val serviceAdvertiser: ServiceAdvertiser,
-    private val permissionHandler: BackgroundPermissionHandler
+    private val permissionHandler: BackgroundPermissionHandler,
+    private val storagePermissionHandler: StoragePermissionHandler
 ) : ViewModel() {
 
     private val _userErrorMessage = MutableStateFlow<String?>(null)
     private val _permissionStatus = MutableStateFlow(permissionHandler.checkStatus())
     private val _showPermissionDialog = MutableStateFlow(false)
     private val _isBackgroundRestricted = MutableStateFlow(false)
+    private val _isStoragePermissionGranted = MutableStateFlow(storagePermissionHandler.hasStoragePermission())
+    private val _showStoragePermissionDialog = MutableStateFlow(false)
+    private val _shouldLaunchFolderPicker = MutableStateFlow(false)
+    private val _pendingStorageAction = MutableStateFlow(PendingStorageAction.NONE)
 
     private val serverUrlsFlow = serverController.serverState.flatMapLatest { state ->
         if (state.status == ServerStatus.RUNNING) {
@@ -80,16 +101,32 @@ class ShareViewModel(
         )
     }
 
+    private val storageState = combine(
+        _isStoragePermissionGranted,
+        _showStoragePermissionDialog,
+        _shouldLaunchFolderPicker
+    ) { isGranted, showDialog, shouldLaunchPicker ->
+        StoragePermissionUiState(
+            isGranted = isGranted,
+            showDialog = showDialog,
+            shouldLaunchPicker = shouldLaunchPicker
+        )
+    }
+
     val uiState: StateFlow<ShareUiState> = combine(
         baseShareState,
         _permissionStatus,
         _showPermissionDialog,
-        _isBackgroundRestricted
-    ) { base, permStatus, showDialog, isRestricted ->
+        _isBackgroundRestricted,
+        storageState
+    ) { base, permStatus, showDialog, isRestricted, storage ->
         base.copy(
             permissionStatus = permStatus,
             showPermissionRationaleDialog = showDialog,
-            isBackgroundRestricted = isRestricted && !permStatus.isAllGranted
+            isBackgroundRestricted = isRestricted && !permStatus.isAllGranted,
+            isStoragePermissionGranted = storage.isGranted,
+            showStoragePermissionDialog = storage.showDialog,
+            shouldLaunchFolderPicker = storage.shouldLaunchPicker
         )
     }.stateIn(
         scope = viewModelScope,
@@ -100,6 +137,7 @@ class ShareViewModel(
     private fun createInitialUiState(): ShareUiState {
         val serverState = serverController.serverState.value
         val permStatus = permissionHandler.checkStatus()
+        val hasStorage = storagePermissionHandler.hasStoragePermission()
 
         return ShareUiState(
             serverStatus = serverState.status,
@@ -110,12 +148,64 @@ class ShareViewModel(
             permissionStatus = permStatus,
             showPermissionRationaleDialog = false,
             isBackgroundRestricted = false,
+            isStoragePermissionGranted = hasStorage,
+            showStoragePermissionDialog = false,
+            shouldLaunchFolderPicker = false,
             isLoadingFolders = true
         )
     }
 
     fun clearErrorMessage() {
         _userErrorMessage.value = null
+    }
+
+    fun onAddFolderClicked() {
+        val hasStorage = storagePermissionHandler.hasStoragePermission()
+        _isStoragePermissionGranted.value = hasStorage
+        if (hasStorage) {
+            _shouldLaunchFolderPicker.value = true
+        } else {
+            _pendingStorageAction.value = PendingStorageAction.ADD_FOLDER
+            _showStoragePermissionDialog.value = true
+        }
+    }
+
+    fun onFolderPickerLaunched() {
+        _shouldLaunchFolderPicker.value = false
+    }
+
+    fun onGrantStoragePermissionClicked() {
+        val hasStorage = storagePermissionHandler.hasStoragePermission()
+        _isStoragePermissionGranted.value = hasStorage
+        if (!hasStorage) {
+            _pendingStorageAction.value = PendingStorageAction.NONE
+            _showStoragePermissionDialog.value = true
+        }
+    }
+
+    fun onStoragePermissionResult(isGranted: Boolean) {
+        _isStoragePermissionGranted.value = isGranted
+        if (isGranted) {
+            _showStoragePermissionDialog.value = false
+            val pending = _pendingStorageAction.value
+            _pendingStorageAction.value = PendingStorageAction.NONE
+            when (pending) {
+                PendingStorageAction.ADD_FOLDER -> {
+                    _shouldLaunchFolderPicker.value = true
+                }
+                PendingStorageAction.START_SHARING -> {
+                    if (!uiState.value.isSharing && uiState.value.hasActiveFolders) {
+                        proceedStartSharingAfterStorageCheck()
+                    }
+                }
+                PendingStorageAction.NONE -> Unit
+            }
+        }
+    }
+
+    fun onDismissStoragePermissionDialog() {
+        _showStoragePermissionDialog.value = false
+        _pendingStorageAction.value = PendingStorageAction.NONE
     }
 
     fun addFolder(path: String, name: String) {
@@ -176,6 +266,18 @@ class ShareViewModel(
             return
         }
 
+        val hasStorage = storagePermissionHandler.hasStoragePermission()
+        _isStoragePermissionGranted.value = hasStorage
+        if (!hasStorage) {
+            _pendingStorageAction.value = PendingStorageAction.START_SHARING
+            _showStoragePermissionDialog.value = true
+            return
+        }
+
+        proceedStartSharingAfterStorageCheck()
+    }
+
+    private fun proceedStartSharingAfterStorageCheck() {
         val permStatus = permissionHandler.checkStatus()
         _permissionStatus.value = permStatus
 

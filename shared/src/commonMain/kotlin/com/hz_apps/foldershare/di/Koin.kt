@@ -52,10 +52,11 @@ val coreModule = module {
     single<com.hz_apps.foldershare.core.transfer.FileTransferManager> { com.hz_apps.foldershare.core.transfer.FileTransferManager(get(),
         get(), get()) }
     single<com.hz_apps.foldershare.core.permissions.BackgroundPermissionHandler> { com.hz_apps.foldershare.core.permissions.createBackgroundPermissionHandler() }
+    single<com.hz_apps.foldershare.core.permissions.StoragePermissionHandler> { com.hz_apps.foldershare.core.permissions.createStoragePermissionHandler() }
 }
 
 val viewModelModule = module {
-    viewModel { ShareViewModel(get(), get(), get(), get()) }
+    viewModel { ShareViewModel(get(), get(), get(), get(), get()) }
     viewModel { DevicesViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { FileExplorerViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { SettingsViewModel(get()) }
