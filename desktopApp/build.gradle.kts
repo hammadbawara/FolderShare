@@ -22,9 +22,19 @@ val appRawVersion = (project.findProperty("appVersion") as? String)
 // jpackage on Windows strictly requires numeric version format (major.minor.build)
 val appNumericVersion = Regex("""^(\d+(\.\d+){1,2})""").find(appRawVersion)?.value ?: "1.0.0"
 
+val isAlphaBuild = (project.findProperty("alphaBuild") as? String)?.toBoolean()
+    ?: System.getenv("ALPHA_BUILD")?.toBoolean()
+    ?: false
+
+val appPackageName = if (isAlphaBuild) "Folder Share Alpha" else "Folder Share"
+val appArchiveBaseName = if (isAlphaBuild) "foldershare-alpha" else "foldershare"
+
 compose.desktop {
     application {
         mainClass = "com.hz_apps.foldershare.MainKt"
+        if (isAlphaBuild) {
+            jvmArgs("-Dfoldershare.alpha=true")
+        }
 
         buildTypes.release.proguard {
             configurationFiles.from(
@@ -35,7 +45,7 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.AppImage, TargetFormat.Msi, TargetFormat.Exe)
-            packageName = "Folder Share"
+            packageName = appPackageName
             packageVersion = appNumericVersion
             description = "Folder Share - Zero-touch local network folder sharing & streaming"
             vendor = "HZ Apps"
@@ -54,7 +64,12 @@ compose.desktop {
             )
 
             linux {
-                iconFile.set(project.file("src/main/resources/icons/icon.png"))
+                iconFile.set(
+                    project.file(
+                        if (isAlphaBuild) "src/main/resources/icons/icon-alpha.png"
+                        else "src/main/resources/icons/icon.png"
+                    )
+                )
                 menuGroup = "Network"
                 debMaintainer = "HZ Apps <contact@hzapps.com>"
                 rpmLicenseType = "GPL-3.0"
@@ -62,15 +77,24 @@ compose.desktop {
             }
 
             windows {
-                iconFile.set(project.file("src/main/resources/icons/icon.ico"))
-                menuGroup = "Folder Share"
+                iconFile.set(
+                    project.file(
+                        if (isAlphaBuild) "src/main/resources/icons/icon-alpha.ico"
+                        else "src/main/resources/icons/icon.ico"
+                    )
+                )
+                menuGroup = appPackageName
                 shortcut = true
                 dirChooser = true
                 // Install under the current user's profile so the MSI does not
                 // require administrator privileges or write to Program Files.
                 perUserInstall = true
                 menu = true
-                upgradeUuid = "d7b5f543-9821-48cf-9a99-4c9182390f77"
+                upgradeUuid = if (isAlphaBuild) {
+                    "a8c4e210-3b7d-4e92-8f11-9c2a5d6e7b30"
+                } else {
+                    "d7b5f543-9821-48cf-9a99-4c9182390f77"
+                }
             }
         }
     }
@@ -80,15 +104,15 @@ val packageLinuxTarGz = tasks.register<Tar>("packageLinuxTarGz") {
     group = "distribution"
     description = "Packs the standalone Linux release distributable into a tar.gz archive."
     dependsOn("createReleaseDistributable")
-    archiveBaseName.set("foldershare")
+    archiveBaseName.set(appArchiveBaseName)
     archiveVersion.set(appRawVersion)
     archiveClassifier.set("linux-x64")
     archiveExtension.set("tar.gz")
     compression = Compression.GZIP
     destinationDirectory.set(layout.buildDirectory.dir("release"))
 
-    from(layout.buildDirectory.dir("compose/binaries/main-release/app/Folder Share")) {
-        into("foldershare")
+    from(layout.buildDirectory.dir("compose/binaries/main-release/app/$appPackageName")) {
+        into(appArchiveBaseName)
     }
 }
 
@@ -112,14 +136,14 @@ val packageWindowsZip = tasks.register<Zip>("packageWindowsZip") {
     group = "distribution"
     description = "Packs the standalone Windows release distributable into a zip archive."
     dependsOn("createReleaseDistributable")
-    archiveBaseName.set("foldershare")
+    archiveBaseName.set(appArchiveBaseName)
     archiveVersion.set(appRawVersion)
     archiveClassifier.set("windows-x64")
     archiveExtension.set("zip")
     destinationDirectory.set(layout.buildDirectory.dir("release"))
 
-    from(layout.buildDirectory.dir("compose/binaries/main-release/app/Folder Share")) {
-        into("foldershare")
+    from(layout.buildDirectory.dir("compose/binaries/main-release/app/$appPackageName")) {
+        into(appArchiveBaseName)
     }
 }
 

@@ -25,6 +25,10 @@ val appVersionName = (project.findProperty("appVersion") as? String)
     ?: System.getenv("APP_VERSION")
     ?: "1.0"
 
+val isAlphaBuild = (project.findProperty("alphaBuild") as? String)?.toBoolean()
+    ?: System.getenv("ALPHA_BUILD")?.toBoolean()
+    ?: false
+
 android {
     namespace = "com.hz_apps.foldershare"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -32,10 +36,24 @@ android {
 
     defaultConfig {
         applicationId = "com.hz_apps.foldershare"
+        if (isAlphaBuild) {
+            applicationIdSuffix = ".alpha"
+        }
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 3
         versionName = appVersionName
+    }
+
+    if (isAlphaBuild) {
+        sourceSets {
+            getByName("release") {
+                res.directories.add("src/alpha/res")
+            }
+            getByName("debug") {
+                res.directories.add("src/alpha/res")
+            }
+        }
     }
 
     packaging {

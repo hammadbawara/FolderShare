@@ -40,6 +40,8 @@ fun main() {
         var shutdownProgressText by remember { mutableStateOf("Preparing to shut down...") }
         val scope = rememberCoroutineScope()
 
+        val isAlpha = System.getProperty("foldershare.alpha")?.toBoolean() == true
+
         Window(
             onCloseRequest = {
                 if (!isShuttingDown) {
@@ -61,8 +63,8 @@ fun main() {
                     }
                 }
             },
-            title = "Folder Share",
-            icon = painterResource("icons/icon.png"),
+            title = if (isAlpha) "Folder Share Alpha" else "Folder Share",
+            icon = painterResource(if (isAlpha) "icons/icon-alpha.png" else "icons/icon.png"),
         ) {
             App()
             

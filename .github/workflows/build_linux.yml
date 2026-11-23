@@ -8,6 +8,11 @@ on:
         required: false
         default: '1.0.0'
         type: string
+      alpha:
+        description: 'Build Alpha pre-release variant (separate package name and B&W icon)'
+        required: false
+        default: false
+        type: boolean
   workflow_call:
     inputs:
       version:
@@ -15,6 +20,11 @@ on:
         required: false
         default: ''
         type: string
+      alpha:
+        description: 'Build Alpha pre-release variant'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build:
@@ -59,17 +69,21 @@ jobs:
           echo "Building Linux version: $VERSION"
 
       - name: Build Linux Packages
-        run: ./gradlew :desktopApp:packageLinux -PappVersion="${{ steps.version.outputs.version }}"
+        run: ./gradlew :desktopApp:packageLinux -PappVersion="${{ steps.version.outputs.version }}" -PalphaBuild="${{ inputs.alpha }}"
 
       - name: Package Linux Artifacts
         run: |
           mkdir -p dist
           VERSION="${{ steps.version.outputs.version }}"
+          PREFIX="FolderShare"
+          if [ "${{ inputs.alpha }}" == "true" ]; then
+            PREFIX="FolderShare-Alpha"
+          fi
 
           # Copy Debian installer (.deb)
           DEB_FILE=$(find desktopApp/build/release -name "*.deb" | head -n 1)
           if [ -n "$DEB_FILE" ]; then
-            cp "$DEB_FILE" "dist/FolderShare-${VERSION}-linux-amd64.deb"
+            cp "$DEB_FILE" "dist/${PREFIX}-${VERSION}-linux-amd64.deb"
           else
             echo "::error::No .deb installer package found in desktopApp/build/release"
             exit 1
@@ -78,7 +92,7 @@ jobs:
           # Copy Tarball (.tar.gz)
           TARGZ_FILE=$(find desktopApp/build/release -name "*.tar.gz" | head -n 1)
           if [ -n "$TARGZ_FILE" ]; then
-            cp "$TARGZ_FILE" "dist/FolderShare-${VERSION}-linux-x64.tar.gz"
+            cp "$TARGZ_FILE" "dist/${PREFIX}-${VERSION}-linux-x64.tar.gz"
           else
             echo "::error::No .tar.gz archive found in desktopApp/build/release"
             exit 1

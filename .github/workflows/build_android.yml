@@ -8,6 +8,11 @@ on:
         required: false
         default: '1.0.0'
         type: string
+      alpha:
+        description: 'Build Alpha pre-release variant (separate app ID, name, and B&W icon)'
+        required: false
+        default: false
+        type: boolean
   workflow_call:
     inputs:
       version:
@@ -15,6 +20,11 @@ on:
         required: false
         default: ''
         type: string
+      alpha:
+        description: 'Build Alpha pre-release variant'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build:
@@ -56,17 +66,21 @@ jobs:
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: ./gradlew :androidApp:assembleRelease -PappVersion="${{ steps.version.outputs.version }}"
+        run: ./gradlew :androidApp:assembleRelease -PappVersion="${{ steps.version.outputs.version }}" -PalphaBuild="${{ inputs.alpha }}"
 
       - name: Package Android Artifacts
         run: |
           mkdir -p dist
           VERSION="${{ steps.version.outputs.version }}"
+          PREFIX="FolderShare"
+          if [ "${{ inputs.alpha }}" == "true" ]; then
+            PREFIX="FolderShare-Alpha"
+          fi
 
           # Locate and copy APK
           APK_FILE=$(find androidApp/build/outputs/apk/release -name "*.apk" | head -n 1)
           if [ -n "$APK_FILE" ]; then
-            cp "$APK_FILE" "dist/FolderShare-${VERSION}-android.apk"
+            cp "$APK_FILE" "dist/${PREFIX}-${VERSION}-android.apk"
           else
             echo "::error::No APK found in androidApp/build/outputs/apk/release"
             exit 1

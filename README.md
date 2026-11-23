@@ -79,6 +79,29 @@ cd FolderShare
 ./gradlew test
 ```
 
+### Building Alpha (Pre-release) Versions
+
+Alpha builds install **separately** alongside the stable app on Android, Linux, and Windows as **Folder Share Alpha** with a black-and-white icon and isolated data/log directories.
+
+```bash
+# Run Desktop Alpha
+./gradlew :desktopApp:run -PalphaBuild=true
+
+# Build Android Alpha APK (release-signed / debug)
+./gradlew :androidApp:assembleRelease -PalphaBuild=true
+./gradlew :androidApp:assembleDebug -PalphaBuild=true
+
+# Build Linux Alpha packages (.deb and .tar.gz)
+./gradlew :desktopApp:packageLinux -PalphaBuild=true -PappVersion=1.0.0-alpha.1
+
+# Build Windows Alpha packages (.msi, .exe, and .zip)
+./gradlew :desktopApp:packageWindows -PalphaBuild=true -PappVersion=1.0.0-alpha.1
+```
+
+**GitHub Actions:**
+- Push a tag containing `-alpha` (e.g., `v1.1.0-alpha.1`) to automatically build all platforms with `-PalphaBuild=true` and publish a GitHub Pre-release.
+- Or manually trigger `Build Android`, `Build Linux`, or `Build Windows` via `workflow_dispatch` with **`alpha: true`**.
+
 </details>
 
 <details>

@@ -8,6 +8,11 @@ on:
         required: false
         default: '1.0.0'
         type: string
+      alpha:
+        description: 'Build Alpha pre-release variant (separate app name, upgradeUuid, and B&W icon)'
+        required: false
+        default: false
+        type: boolean
   workflow_call:
     inputs:
       version:
@@ -15,6 +20,11 @@ on:
         required: false
         default: ''
         type: string
+      alpha:
+        description: 'Build Alpha pre-release variant'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build:
@@ -65,7 +75,8 @@ jobs:
         shell: pwsh
         run: |
           $ver = "${{ steps.version.outputs.version }}"
-          .\gradlew.bat :desktopApp:packageWindows "-PappVersion=$ver"
+          $alpha = "${{ inputs.alpha }}"
+          .\gradlew.bat :desktopApp:packageWindows "-PappVersion=$ver" "-PalphaBuild=$alpha"
 
       - name: Sign Windows Installer (Optional)
         env:
@@ -85,12 +96,13 @@ jobs:
         shell: pwsh
         run: |
           $ver = "${{ steps.version.outputs.version }}"
+          $prefix = if ("${{ inputs.alpha }}" -eq "true") { "FolderShare-Alpha" } else { "FolderShare" }
           New-Item -ItemType Directory -Force -Path dist | Out-Null
 
           # Copy MSI
           $msi = Get-ChildItem -Path "desktopApp/build/release" -Filter "*.msi" | Select-Object -First 1
           if ($msi) {
-            Copy-Item $msi.FullName -Destination "dist/FolderShare-$ver-windows-x64.msi"
+            Copy-Item $msi.FullName -Destination "dist/$prefix-$ver-windows-x64.msi"
           } else {
             Write-Error "No .msi installer found in desktopApp/build/release"
             exit 1
@@ -99,13 +111,13 @@ jobs:
           # Copy ZIP
           $zip = Get-ChildItem -Path "desktopApp/build/release" -Filter "*.zip" | Select-Object -First 1
           if ($zip) {
-            Copy-Item $zip.FullName -Destination "dist/FolderShare-$ver-windows-x64.zip"
+            Copy-Item $zip.FullName -Destination "dist/$prefix-$ver-windows-x64.zip"
           }
 
           # Copy EXE if generated
           $exe = Get-ChildItem -Path "desktopApp/build/release" -Filter "*.exe" | Select-Object -First 1
           if ($exe) {
-            Copy-Item $exe.FullName -Destination "dist/FolderShare-$ver-windows-x64.exe"
+            Copy-Item $exe.FullName -Destination "dist/$prefix-$ver-windows-x64.exe"
           }
 
           Write-Host "Prepared Windows artifacts:"

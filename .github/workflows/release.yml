@@ -18,12 +18,18 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      is_alpha: ${{ steps.version.outputs.is_alpha }}
     steps:
       - name: Extract Version
         id: version
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          if [[ "${GITHUB_REF_NAME}" =~ -alpha ]]; then
+            echo "is_alpha=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_alpha=false" >> $GITHUB_OUTPUT
+          fi
           echo "Release version: $VERSION"
 
   check:
@@ -54,6 +60,7 @@ jobs:
     uses: ./.github/workflows/build_android.yml
     with:
       version: ${{ needs.version.outputs.version }}
+      alpha: ${{ needs.version.outputs.is_alpha == 'true' }}
     secrets: inherit
 
   build-linux:
@@ -62,6 +69,7 @@ jobs:
     uses: ./.github/workflows/build_linux.yml
     with:
       version: ${{ needs.version.outputs.version }}
+      alpha: ${{ needs.version.outputs.is_alpha == 'true' }}
 
   build-windows:
     name: Windows
@@ -69,11 +77,12 @@ jobs:
     uses: ./.github/workflows/build_windows.yml
     with:
       version: ${{ needs.version.outputs.version }}
+      alpha: ${{ needs.version.outputs.is_alpha == 'true' }}
     secrets: inherit
 
   publish-release:
     name: Publish GitHub Release
-    needs: [check, build-android, build-linux, build-windows]
+    needs: [check, version, build-android, build-linux, build-windows]
     runs-on: ubuntu-latest
     steps:
       - name: Download all release artifacts
@@ -105,7 +114,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: Folder Share ${{ github.ref_name }}
+          name: ${{ needs.version.outputs.is_alpha == 'true' && format('Folder Share Alpha {0}', github.ref_name) || format('Folder Share {0}', github.ref_name) }}
           draft: false
           prerelease: ${{ steps.release_type.outputs.prerelease == 'true' }}
           generate_release_notes: true

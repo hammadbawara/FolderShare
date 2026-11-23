@@ -8,6 +8,11 @@ actual object PlatformDirs {
 
     private val osName = System.getProperty("os.name")?.lowercase() ?: ""
     private val userHome = System.getProperty("user.home") ?: "."
+    private val appDirName = if (System.getProperty("foldershare.alpha")?.toBoolean() == true) {
+        "foldershare-alpha"
+    } else {
+        "foldershare"
+    }
 
     private fun getEnv(name: String): String? = System.getenv(name)?.takeIf { it.isNotBlank() }
 
@@ -15,15 +20,15 @@ actual object PlatformDirs {
         val path = when {
             osName.contains("win") -> {
                 val appData = getEnv("LOCALAPPDATA") ?: getEnv("APPDATA") ?: "$userHome\\AppData\\Local"
-                "$appData\\foldershare".toPath()
+                "$appData\\$appDirName".toPath()
             }
             osName.contains("mac") -> {
-                "$userHome/Library/Application Support/foldershare".toPath()
+                "$userHome/Library/Application Support/$appDirName".toPath()
             }
             else -> {
                 // Linux / BSD / Unix
                 val xdgDataHome = getEnv("XDG_DATA_HOME") ?: "$userHome/.local/share"
-                "$xdgDataHome/foldershare".toPath()
+                "$xdgDataHome/$appDirName".toPath()
             }
         }
         if (!FileSystem.SYSTEM.exists(path)) FileSystem.SYSTEM.createDirectories(path)
@@ -34,15 +39,15 @@ actual object PlatformDirs {
         val path = when {
             osName.contains("win") -> {
                 val appData = getEnv("LOCALAPPDATA") ?: getEnv("APPDATA") ?: "$userHome\\AppData\\Local"
-                "$appData\\foldershare\\logs".toPath()
+                "$appData\\$appDirName\\logs".toPath()
             }
             osName.contains("mac") -> {
-                "$userHome/Library/Logs/foldershare".toPath()
+                "$userHome/Library/Logs/$appDirName".toPath()
             }
             else -> {
                 // Linux / BSD / Unix
                 val xdgStateHome = getEnv("XDG_STATE_HOME") ?: "$userHome/.local/state"
-                "$xdgStateHome/foldershare/logs".toPath()
+                "$xdgStateHome/$appDirName/logs".toPath()
             }
         }
         if (!FileSystem.SYSTEM.exists(path)) FileSystem.SYSTEM.createDirectories(path)
